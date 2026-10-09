@@ -53,9 +53,13 @@ export function berlekampMasseyTrace(bits: readonly number[]): BmResult {
         lastLengthUpdate = index
       }
     }
-    trace.push({ index, processed: index + 1, input: bits[index], discrepancy, beforeC, afterC: [...C], beforeB, afterB: [...B], beforeLength, afterLength: length, beforeLastLengthUpdate, afterLastLengthUpdate: lastLengthUpdate, shift })
+    trace.push(Object.freeze({ index, processed: index + 1, input: bits[index], discrepancy,
+      beforeC: Object.freeze(beforeC), afterC: Object.freeze([...C]),
+      beforeB: Object.freeze(beforeB), afterB: Object.freeze([...B]),
+      beforeLength, afterLength: length, beforeLastLengthUpdate,
+      afterLastLengthUpdate: lastLengthUpdate, shift }))
   }
-  return { length, coefficients: C, trace }
+  return Object.freeze({ length, coefficients: Object.freeze([...C]), trace: Object.freeze(trace) })
 }
 
 export function forecast(prefix: readonly number[], coefficients: Connection, length: number, horizon: number): Bit[] {

@@ -48,6 +48,9 @@ describe('binary Berlekamp–Massey', () => {
     expect(result.trace[2].beforeC).toEqual([1])
     expect(result.trace[2].afterC).toEqual([1, 0, 0, 1])
     expect(result.trace[5].afterC.length - 1).toBeLessThan(result.trace[5].afterLength)
+    expect(Object.isFrozen(result.trace)).toBe(true)
+    expect(Object.isFrozen(result.trace[2])).toBe(true)
+    expect(Object.isFrozen(result.trace[2].afterC)).toBe(true)
   })
 
   it('agrees with an independent brute-force shortest-recurrence oracle on every sequence through 8 bits', () => {

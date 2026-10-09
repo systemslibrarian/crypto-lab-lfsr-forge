@@ -1,7 +1,7 @@
 {
-  "runDate": "2026-10-09T04:56:04.577Z",
+  "runDate": "2026-10-09T05:09:25.537Z",
   "seed": "0x1f5f2026",
-  "sourceSha256": "8cfd15f44940fb9a830fdac3c324a557a4a97b971f024181114b2d538f11a4ac",
+  "sourceSha256": "3678b06499af3588873788670a5692ef3785af1d135998374bef93a9772518b3",
   "trialCount": 8,
   "environment": {
     "platform": "darwin",
@@ -44,7 +44,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504726,
-        "elapsedMs": 395.80000001192093
+        "elapsedMs": 363.79999999701977
       }
     },
     {
@@ -67,7 +67,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504813,
-        "elapsedMs": 401.6000000089407
+        "elapsedMs": 379.19999998807907
       }
     },
     {
@@ -90,7 +90,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504734,
-        "elapsedMs": 393.40000000596046
+        "elapsedMs": 400.30000001192093
       }
     },
     {
@@ -113,7 +113,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504753,
-        "elapsedMs": 402.09999999403954
+        "elapsedMs": 380.79999999701977
       }
     },
     {
@@ -136,7 +136,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504751,
-        "elapsedMs": 399.5
+        "elapsedMs": 378
       }
     },
     {
@@ -159,7 +159,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504745,
-        "elapsedMs": 400.20000000298023
+        "elapsedMs": 384.20000000298023
       }
     },
     {
@@ -182,7 +182,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504724,
-        "elapsedMs": 400.59999999403954
+        "elapsedMs": 380.8999999910593
       }
     },
     {
@@ -205,7 +205,7 @@
         "r2StatesTested": 2047,
         "fullPrefixChecks": 1,
         "bitComparisons": 2504745,
-        "elapsedMs": 397.40000000596046
+        "elapsedMs": 372.6000000089407
       }
     }
   ]

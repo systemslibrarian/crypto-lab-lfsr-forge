@@ -72,7 +72,7 @@ The CI workflow runs unit tests, builds the production bundle, then runs the bro
 
 ## Performance
 
-`node scripts/benchmark-browser.mjs` runs eight independently selected state triples from recorded xorshift seed `0x1f5f2026` in Chromium with a 300-bit capture and the shipped search budget. The [recorded run](docs/benchmark-results.json) on headless Chromium 156 / macOS arm64 recovered and correctly predicted all eight. Seven runs reached the 16-pair cap while still finding the exact triple; this is a budget limit, not a failure. Measured scan times were about 393–403 ms in that environment. These eight cases do not establish a universal recovery rate or a runtime speedup over exhaustive key search.
+`node scripts/benchmark-browser.mjs` runs eight independently selected state triples from recorded xorshift seed `0x1f5f2026` in Chromium with a 300-bit capture and the shipped search budget. The [recorded run](docs/benchmark-results.json) on headless Chromium 156 / macOS arm64 recovered and correctly predicted all eight. Seven runs reached the 16-pair cap while still finding the exact triple; this is a budget limit, not a failure. Measured scan times were about 364–401 ms in that environment. These eight cases do not establish a universal recovery rate or a runtime speedup over exhaustive key search.
 
 ---
 
