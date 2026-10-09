@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <script>
+      (function () {
+        try { localStorage.setItem('theme', 'dark') } catch (error) { void error }
+        document.documentElement.setAttribute('data-theme', 'dark')
+      })()
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Explore binary LFSRs, Berlekamp–Massey prediction, and state recovery against a Geffe generator." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%94%AC</text></svg>" />
+    <title>LFSR Forge — crypto-lab</title>
+  </head>
+  <body>
+    <style>
+      .cl-topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem clamp(.9rem,3vw,2rem);background:#0b1512;border-bottom:1px solid #59472c;font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;position:sticky;top:0;z-index:1000}
+      .cl-brand{display:flex;align-items:center;gap:.8rem;text-decoration:none}.cl-badge{flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;border:1.5px solid var(--accent,#ffb84d);border-radius:8px;color:#ffe1b8;font-weight:700;font-size:.95rem;letter-spacing:.05em}.cl-brand-text{display:flex;flex-direction:column;line-height:1.15}.cl-title{color:#eafff8;font-weight:700;font-size:1.05rem;letter-spacing:.12em}.cl-sub{color:#9bb3ad;font-size:.72rem;letter-spacing:.04em}.cl-actions{display:flex;align-items:center;gap:.5rem}.cl-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .85rem;border-radius:8px;border:1px solid #a9aba3;background:transparent;color:#ffe1b8;cursor:pointer;font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}.cl-btn:hover{background:#27251f;border-color:var(--accent);color:#fff}.cl-skip-link{position:absolute;left:.5rem;top:-3rem;z-index:1001;padding:.55rem 1rem;border-radius:0 0 8px 8px;background:#eafff8;color:#0b1512;font-weight:700;text-decoration:none}.cl-skip-link:focus{top:0}.cl-btn svg{width:15px;height:15px}@media(max-width:560px){.cl-sub{display:none}.cl-btn span{display:none}}
+    </style>
+    <a class="cl-skip-link" href="#app">Skip to content</a>
+    <header class="cl-topbar" role="banner" aria-label="Crypto Lab">
+      <a class="cl-brand" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab home"><span class="cl-badge">CL</span><span class="cl-brand-text"><span class="cl-title">CRYPTO LAB</span><span class="cl-sub">systemslibrarian.dev</span></span></a>
+      <nav class="cl-actions" aria-label="Crypto Lab navigation">
+        <a class="cl-btn" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab menu"><span>Menu</span></a>
+        <a class="cl-btn" href="https://github.com/systemslibrarian/crypto-lab-lfsr-forge" target="_blank" rel="noopener" aria-label="View this project on GitHub"><span>GitHub</span></a>
+      </nav>
+    </header>
+    <main id="app" tabindex="-1"><p role="status">Loading the lab…</p></main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

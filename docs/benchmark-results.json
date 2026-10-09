@@ -1,0 +1,212 @@
+{
+  "runDate": "2026-10-09T04:56:04.577Z",
+  "seed": "0x1f5f2026",
+  "sourceSha256": "8cfd15f44940fb9a830fdac3c324a557a4a97b971f024181114b2d538f11a4ac",
+  "trialCount": 8,
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "browser": "Chromium 156.0.8078.4",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"
+  },
+  "budget": {
+    "leadingR1": 4,
+    "leadingR3": 4,
+    "maxPairs": 16,
+    "maxR2Tests": 32752,
+    "horizon": 64
+  },
+  "captureBits": 300,
+  "summary": {
+    "exactRecoveries": 8,
+    "failedOrAmbiguous": 0,
+    "frozenPredictionsMatched": 8,
+    "exhausted": 7
+  },
+  "outcomes": [
+    {
+      "trial": 1,
+      "packed": {
+        "r1": 112,
+        "r2": 854,
+        "r3": 3626
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 7,
+      "r3TiesRetained": 6,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504726,
+        "elapsedMs": 395.80000001192093
+      }
+    },
+    {
+      "trial": 2,
+      "packed": {
+        "r1": 91,
+        "r2": 99,
+        "r3": 1753
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 5,
+      "r3TiesRetained": 4,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504813,
+        "elapsedMs": 401.6000000089407
+      }
+    },
+    {
+      "trial": 3,
+      "packed": {
+        "r1": 13,
+        "r2": 1804,
+        "r3": 3535
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 5,
+      "r3TiesRetained": 4,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504734,
+        "elapsedMs": 393.40000000596046
+      }
+    },
+    {
+      "trial": 4,
+      "packed": {
+        "r1": 63,
+        "r2": 1585,
+        "r3": 5856
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": false,
+      "r1TiesRetained": 4,
+      "r3TiesRetained": 4,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504753,
+        "elapsedMs": 402.09999999403954
+      }
+    },
+    {
+      "trial": 5,
+      "packed": {
+        "r1": 125,
+        "r2": 1587,
+        "r3": 4261
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 4,
+      "r3TiesRetained": 5,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504751,
+        "elapsedMs": 399.5
+      }
+    },
+    {
+      "trial": 6,
+      "packed": {
+        "r1": 2,
+        "r2": 1194,
+        "r3": 2221
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 7,
+      "r3TiesRetained": 4,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504745,
+        "elapsedMs": 400.20000000298023
+      }
+    },
+    {
+      "trial": 7,
+      "packed": {
+        "r1": 4,
+        "r2": 541,
+        "r3": 6522
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 5,
+      "r3TiesRetained": 4,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504724,
+        "elapsedMs": 400.59999999403954
+      }
+    },
+    {
+      "trial": 8,
+      "packed": {
+        "r1": 82,
+        "r2": 1805,
+        "r3": 5000
+      },
+      "survivors": 1,
+      "exact": true,
+      "predictionMatched": true,
+      "exhausted": true,
+      "r1TiesRetained": 4,
+      "r3TiesRetained": 6,
+      "metrics": {
+        "r1StatesScored": 127,
+        "r3StatesScored": 8191,
+        "pairAttempts": 16,
+        "r2StatesTested": 2047,
+        "fullPrefixChecks": 1,
+        "bitComparisons": 2504745,
+        "elapsedMs": 397.40000000596046
+      }
+    }
+  ]
+}
