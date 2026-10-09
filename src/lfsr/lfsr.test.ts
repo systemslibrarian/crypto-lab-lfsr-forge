@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clock, connection, generate, parseBits, period, PRIMITIVE_TAPS, type Bit } from './lfsr'
+import { characteristic, clock, connection, generate, parseBits, period, PRIMITIVE_TAPS, type Bit } from './lfsr'
 import { berlekampMasseyTrace, forecast } from './bm'
 
 describe('register mechanics and registry', () => {
@@ -11,6 +11,7 @@ describe('register mechanics and registry', () => {
     const second = generate(c, first.state, 9)
     expect([...first.bits, ...second.bits]).toEqual(whole.bits)
     expect(whole.bits.slice(0, 5)).toEqual([1, 0, 0, 1, 1])
+    expect(characteristic(connection(5, [2, 5]))).toBe('1 + X^3 + X^5 (reciprocal of degree 5)')
   })
   it('each shipped connection has exactly its stated primitive period and crosses the boundary', () => {
     for (const [degreeText, taps] of Object.entries(PRIMITIVE_TAPS)) {
@@ -46,6 +47,7 @@ describe('binary Berlekamp–Massey', () => {
     ])
     expect(result.trace[2].beforeC).toEqual([1])
     expect(result.trace[2].afterC).toEqual([1, 0, 0, 1])
+    expect(result.trace[5].afterC.length - 1).toBeLessThan(result.trace[5].afterLength)
   })
 
   it('agrees with an independent brute-force shortest-recurrence oracle on every sequence through 8 bits', () => {

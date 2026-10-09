@@ -1,0 +1,83 @@
+{
+  "runDate": "2026-10-09T05:02:11.528Z",
+  "cases": [
+    {
+      "name": "BM length update",
+      "file": "src/lfsr/bm.ts",
+      "anchor": "length = index + 1 - length",
+      "replacement": "length = index - length",
+      "owningTest": "user-entered sequence has analysis",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    },
+    {
+      "name": "Geffe selector truth table",
+      "file": "src/geffe/geffe.ts",
+      "anchor": "return ((x1 & x2) ^ ((1 ^ x2) & x3)) as Bit",
+      "replacement": "return ((x1 ^ x2) ^ x3) as Bit",
+      "owningTest": "negative-claim fixture passes construction",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    },
+    {
+      "name": "conditional R2 equation",
+      "file": "src/geffe/correlation.ts",
+      "anchor": "required.push((observed[index] ^ x3[index]) as Bit)",
+      "replacement": "required.push(observed[index])",
+      "owningTest": "negative-claim fixture passes construction",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    },
+    {
+      "name": "measured comparison count",
+      "file": "src/geffe/correlation.ts",
+      "anchor": "metrics.bitComparisons += observed.length\n      if (phase === 'R1')",
+      "replacement": "metrics.bitComparisons += 1\n      if (phase === 'R1')",
+      "owningTest": "negative-claim fixture passes construction",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    },
+    {
+      "name": "negative claim wording",
+      "file": "src/main.ts",
+      "anchor": "This Geffe generator's nonlinearity and high linear complexity do not prevent recovery of its secret state.",
+      "replacement": "This generator resisted state recovery.",
+      "owningTest": "negative-claim fixture passes construction",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    },
+    {
+      "name": "frozen prediction revision",
+      "file": "src/main.ts",
+      "anchor": "run.matched = frozen.every((bit, index) => bit === run.actual![index])",
+      "replacement": "run.result.prediction = [...run.actual!].reverse()\n        run.matched = frozen.every((bit, index) => bit === run.actual![index])",
+      "owningTest": "negative-claim fixture passes construction",
+      "baselinePassed": true,
+      "patchedSourceBuilt": true,
+      "servedBundleChanged": true,
+      "assertionFailed": true,
+      "restoredBundle": true,
+      "killed": true
+    }
+  ]
+}

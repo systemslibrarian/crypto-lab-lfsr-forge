@@ -31,6 +31,12 @@ const cases = [
     replacement: 'This generator resisted state recovery.',
     test: 'negative-claim fixture passes construction',
   },
+  {
+    name: 'frozen prediction revision', file: 'src/main.ts',
+    anchor: 'run.matched = frozen.every((bit, index) => bit === run.actual![index])',
+    replacement: 'run.result.prediction = [...run.actual!].reverse()\n        run.matched = frozen.every((bit, index) => bit === run.actual![index])',
+    test: 'negative-claim fixture passes construction',
+  },
 ]
 
 function run(command, args, options = {}) {
@@ -43,7 +49,7 @@ async function bundleHash() {
   for (const name of files) { hash.update(name); hash.update(await readFile(`dist/assets/${name}`)) }
   return hash.digest('hex')
 }
-function owningTest(grep) { return run('npx', ['playwright', 'test', 'e2e/claims.spec.ts', '-g', grep]) }
+function owningTest(grep) { return run('npx', ['playwright', 'test', 'e2e/claims.spec.ts', '-g', grep, '--retries=0']) }
 
 const records = []
 for (const entry of cases) {
@@ -72,8 +78,9 @@ for (const entry of cases) {
     if (restoration.status !== 0) throw new Error(`${entry.name}: source restoration did not build\n${restoration.output}`)
     restoredHash = await bundleHash()
   }
-  const killed = mutantBuild.status === 0 && mutantHash !== baselineHash && mutantTest.status !== 0 && mutantTest.output.includes('Error: expect(') && !mutantTest.output.includes('Process from config.webServer') && restoredHash === baselineHash
-  records.push({ name: entry.name, file: entry.file, anchor: entry.anchor, replacement: entry.replacement, owningTest: entry.test, baselinePassed: true, patchedSourceBuilt: mutantBuild.status === 0, servedBundleChanged: mutantHash !== baselineHash, assertionFailed: mutantTest.output.includes('Error: expect('), restoredBundle: restoredHash === baselineHash, killed })
+  const assertionFailed = mutantTest.output.includes('Error: expect(') || mutantTest.output.includes('expect(received)')
+  const killed = mutantBuild.status === 0 && mutantHash !== baselineHash && mutantTest.status !== 0 && assertionFailed && !mutantTest.output.includes('Process from config.webServer') && restoredHash === baselineHash
+  records.push({ name: entry.name, file: entry.file, anchor: entry.anchor, replacement: entry.replacement, owningTest: entry.test, baselinePassed: true, patchedSourceBuilt: mutantBuild.status === 0, servedBundleChanged: mutantHash !== baselineHash, assertionFailed, restoredBundle: restoredHash === baselineHash, killed })
   process.stdout.write(`${killed ? 'KILLED' : 'SURVIVED'} ${entry.name}\n`)
   if (!killed) process.stderr.write(`${mutantBuild.output}\n${mutantTest.output}\n`)
 }
