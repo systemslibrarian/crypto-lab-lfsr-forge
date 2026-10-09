@@ -86,3 +86,18 @@ test('a cancelled scan cannot publish a stale verdict into a new session', async
   await expect(page.locator('#attack-view')).toContainText('Attack capture: 300')
   await expect(page.locator('[data-verdict="ONE TRIPLE WITHIN SEARCH BUDGET"]')).toHaveCount(0)
 })
+
+test('a retry counts revealed bits as observations and preserves the earlier work', async ({ page }) => {
+  await boot(page)
+  await page.getByRole('button', { name: 'Reproducible claim fixture' }).click()
+  await expect(page.locator('[data-verdict="ONE TRIPLE WITHIN SEARCH BUDGET"]')).toBeVisible()
+  const originalWork = (await page.locator('#attack-view').innerText()).match(/bit comparisons (\d+)/i)?.[1]
+  await page.getByRole('button', { name: 'Reveal original next 64 bits' }).click()
+  await page.getByRole('button', { name: 'Run attack on current capture' }).click()
+  await expect(page.locator('[data-verdict="ONE TRIPLE WITHIN SEARCH BUDGET"]')).toBeVisible()
+  await expect(page.locator('[data-claim="attack-n"]')).toHaveText('364')
+  await expect(page.locator('#attack-view')).toContainText('forecast indices 364')
+  await page.getByText('Earlier frozen runs and measured work').click()
+  await expect(page.locator('#attack-view table').last()).toContainText('300')
+  await expect(page.locator('#attack-view table').last()).toContainText(originalWork!)
+})

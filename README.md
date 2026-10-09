@@ -28,7 +28,7 @@ Use the lab to learn the difference between fitting a finite prefix, forecasting
 
 - A BM fit reproduces supplied bits but can forecast incorrectly on an unseen continuation. `N >= 2L_N` is not, by itself, proof that a hidden generator was identified.
 - A 300-bit correlation scan is a finite-budget experiment. No candidate, ties, or a wrong top rank do not certify security. The UI reports actual work, search limits, and checked outcomes.
-- Revealed verification bits become observations. New collections retire prior live verdicts; the original frozen run retains its recorded capture length.
+- Revealed verification bits become observations. New collections retire prior live verdicts; a retry uses the enlarged capture and preserves the earlier run's recorded work.
 - The Geffe attack uses known keystream at clock zero and public register structure. It makes no ciphertext-only claim.
 
 ## Real-World Usage
@@ -66,7 +66,7 @@ Vite uses the GitHub Pages subpath `/crypto-lab-lfsr-forge/`. The development se
 
 ## Build & Verify
 
-The unit suite covers the published HAC Example 6.33 trace, an independent brute-force shortest-recurrence oracle on every binary sequence through eight bits, the primitive period registry, single-register recovery at the 24-bit target, the Geffe truth table and three periods, complexity 233, conditional R2 recovery, finite budgets, and cancellation. The browser suite drives rendered early success/failure, verdict retirement, the 300-bit negative-claim fixture, and WCAG 2.1 A/AA scans at desktop and 380px. Current local run: **13 unit tests and 7 browser tests passed**. `npm run test:a11y` runs all Playwright specs, including claims.
+The unit suite covers the published HAC Example 6.33 trace, an independent brute-force shortest-recurrence oracle on every binary sequence through eight bits, the primitive period registry, single-register recovery at the 24-bit target, the Geffe truth table and three periods, complexity 233, conditional R2 recovery, finite budgets, and cancellation. The browser suite drives rendered early success/failure, verdict retirement, a 300-to-364-bit retry, the negative-claim fixture, and WCAG 2.1 A/AA scans at desktop and 380px. Current local run: **13 unit tests and 8 browser tests passed**. `npm run test:a11y` runs all Playwright specs, including claims.
 
 The CI workflow runs unit tests, builds the production bundle, then runs the browser gate before uploading the Pages artifact. It also gates pull requests, groups minor/patch dependency updates, auto-merges only gate-passing Dependabot PRs, and dispatches the same deployment workflow after a token-authored merge. GitHub Pages must use the **GitHub Actions** source.
 
