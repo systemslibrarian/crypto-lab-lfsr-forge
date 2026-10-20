@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { boot, NARROW, scan, watchPageErrors } from './gate'
+import { boot, driveTrivium, NARROW, scan, watchPageErrors } from './gate'
 
 for (const width of [1280, NARROW.width]) {
-  test(`WCAG 2.1 A/AA across the five panels at ${width}px`, async ({ page }) => {
+  test(`WCAG 2.1 A/AA across the six panels at ${width}px`, async ({ page }) => {
     test.setTimeout(180000)
     const errors = watchPageErrors(page)
     await page.setViewportSize({ width, height: 900 })
@@ -26,6 +26,15 @@ for (const width of [1280, NARROW.width]) {
     await page.getByRole('button', { name: 'Compare original states' }).click()
     await page.getByRole('button', { name: 'Measure later complexity with 466 bits' }).click()
     await scan(page, 'Geffe state recovery')
+    await driveTrivium(page)
     expect(errors, errors.join('\n')).toEqual([])
   })
 }
+
+test('Trivium extension accessibility at 320px', async ({ page }) => {
+  test.setTimeout(180000)
+  const errors = watchPageErrors(page)
+  await page.setViewportSize({ width: 320, height: 900 }); await boot(page)
+  await driveTrivium(page)
+  expect(errors).toEqual([])
+})

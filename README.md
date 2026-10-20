@@ -4,6 +4,8 @@
 
 LFSR Forge is a browser lab for binary Fibonacci linear-feedback shift registers, the Berlekamp–Massey (BM) synthesis algorithm over GF(2), and a correlation attack on a fixed Geffe generator. Given consecutive known keystream bits, it fits a recurrence, freezes a forecast, checks it against the original generator, and separately compares recovered states with hidden states. Aligned known plaintext and ciphertext from XOR stream encryption can disclose those keystream bits. This is not a ciphertext-only attack, and it is not production crypto — it is a teaching demo with deliberately small registers.
 
+Panel 06 adds a hand-rolled, eSTREAM-vector-checked Trivium: three coupled nonlinear feedback registers, the same existing BM and forecast routines, and an actual public-output key recovery when initialization is deliberately removed.
+
 The app is a static Vite/TypeScript frontend. All states and generated bits remain in browser memory; there is no backend, account, storage of session secrets, or telemetry. Hiding a challenge from the interface is an experimental boundary, not protection from a browser owner using developer tools.
 
 ## Exhibits
@@ -14,15 +16,17 @@ The app is a static Vite/TypeScript frontend. All states and generated bits rema
 4. **Inspect Geffe:** step its three disclosed registers and selector truth table, then measure the equivalent recurrence from 466 bits.
 5. **Recover hidden Geffe states:** scan R1 and R3 agreement on 300 copied output bits, derive R2 constraints, test candidate triples, freeze 64 bits, verify the original continuation, and separately confirm all three original states. A later 466-bit inspection measures complexity without changing the attack's 300-bit budget.
 
-The attack's public profile is R1 `1 + D + D^7`, R2 `1 + D^2 + D^11`, and R3 `1 + D + D^3 + D^4 + D^13`, with lengths 7/11/13. The measured periods are 127/2,047/8,191, and the full Geffe linear complexity is 233. The attacker receives a copied output prefix, public profile, and finite search budgets; it receives no hidden states or callable generator.
+6. **The deployed answer: Trivium:** step the real 288-bit state, compare measured BM profiles and frozen forecasts with panel 03’s LFSR, then remove the 1,152-round initialization and recover the key from public IV/output. The worker solves 66 independent equations over 80 unknown bits and checks all 16,384 remaining candidates. A separate controller comparison confirms the hidden key.
+
+The Geffe attack's public profile is R1 `1 + D + D^7`, R2 `1 + D^2 + D^11`, and R3 `1 + D + D^3 + D^4 + D^13`, with lengths 7/11/13. The measured periods are 127/2,047/8,191, and the full Geffe linear complexity is 233. The attacker receives a copied output prefix, public profile, and finite search budgets; it receives no hidden states or callable generator.
 
 ## When to Use It
 
-Use the lab to learn the difference between fitting a finite prefix, forecasting unseen output, and identifying original state. Do **not** use these tiny constructions for real encryption or generalize the result to every nonlinear combiner, SNOW 3G, ZUC, ChaCha20, Trivium, or Grain. Their structures and attack assumptions differ.
+Use the lab to learn the difference between fitting a finite prefix, forecasting unseen output, and identifying original state. Do **not** use these tiny constructions for real encryption or generalize the result to every nonlinear combiner, SNOW 3G, ZUC, ChaCha20, or Grain. Their structures and attack assumptions differ. Panel 06 runs the same BM check on Trivium, where the measured frozen forecast fails, then shows why that check is not a security proof: the zero-round variant still has no short measured recurrence while its key is recovered.
 
 ## Live Demo
 
-[Open LFSR Forge](https://systemslibrarian.github.io/crypto-lab-lfsr-forge/) to run the five panels in a browser. The deterministic claim fixture reaches a case in which the construction checks pass while the secret Geffe state is recovered.
+[Open LFSR Forge](https://systemslibrarian.github.io/crypto-lab-lfsr-forge/) to run the six panels in a browser. The deterministic claim fixture reaches a case in which the construction checks pass while the secret Geffe state is recovered.
 
 ## What Can Go Wrong
 
@@ -66,7 +70,29 @@ Vite uses the GitHub Pages subpath `/crypto-lab-lfsr-forge/`. The development se
 
 ## Build & Verify
 
-The unit suite covers the published HAC Example 6.33 trace, an independent brute-force shortest-recurrence oracle on every binary sequence through eight bits, the primitive period registry, single-register recovery at the 24-bit target, the Geffe truth table and three periods, complexity 233, conditional R2 recovery, finite budgets, and cancellation. The browser suite drives rendered early success/failure, verdict retirement, a 300-to-364-bit retry, the negative-claim fixture, and WCAG 2.1 A/AA scans at desktop and 380px. Current local run: **13 unit tests and 8 browser tests passed**. `npm run test:a11y` runs all Playwright specs, including claims.
+The unit suite covers the published HAC Example 6.33 trace, an independent brute-force shortest-recurrence oracle on every binary sequence through eight bits, the primitive period registry, single-register recovery at the 24-bit target, the Geffe truth table and three periods, complexity 233, conditional R2 recovery, finite budgets, and cancellation. The browser suite drives rendered early success/failure, verdict retirement, a 300-to-364-bit retry, the negative-claim fixture, and WCAG 2.1 A/AA scans at desktop and 380px. The original 13 unit tests and six browser claims remain unchanged. Trivium adds 11 unit tests and five independent browser claims; accessibility walks include the sixth panel and a new 320px pass. `npm run test:a11y` runs all Playwright specs, including claims.
+
+Trivium KATs pin three vectors across eSTREAM sets 1, 3 and 5, each with all four
+64-byte slices at offsets 0/192/256/448 and the 64-byte XOR digest over the complete
+512-byte stream: 15 checks. `src/trivium/vectors.ts` records the exact archived
+source revision and both fetched file SHA-256 hashes. The original ECRYPT host
+was unavailable; the pinned 2011 archive contains the original `unverified`
+run log, and two separately fetched 80/80 copies are byte-identical. No claim
+that the original host’s `verified.test-vectors` was obtained is made.
+
+Properties check the real AND taps, state/bit order, the first 66 linear output
+relations across 100 random pairs, eight random key recoveries, three full-warm-up
+rejections of all candidates, ambiguity and cancellation. The browser tests
+contain a separate three-array Trivium and independent BM/forecast implementation;
+they check every plotted profile point, frozen predictions, actual worker payload
+isolation, separate ground truth, validation, no-op preservation and retirement.
+The original LFSR/BM/Geffe modules and benchmark remain unchanged.
+
+`npm run test:mutations` preserves the six original concrete mutations and adds
+five Trivium faults. Each requires a passing baseline, actual source diff,
+successful changed build, named assertion failure, exact restored build and
+passing owning test. Served JavaScript and workers are SHA-256 checked so stale
+assets cannot count as mutation evidence. Results are in `docs/mutation-results.json`.
 
 The CI workflow runs unit tests, builds the production bundle, then runs the browser gate before uploading the Pages artifact. It also gates pull requests, groups minor/patch dependency updates, auto-merges only gate-passing Dependabot PRs, and dispatches the same deployment workflow after a token-authored merge. GitHub Pages must use the **GitHub Actions** source.
 

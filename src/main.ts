@@ -1,4 +1,5 @@
 import './style.css'
+import { mountTriviumPanel } from './trivium/panel'
 import { berlekampMasseyTrace, forecast, type BmResult } from './lfsr/bm'
 import { clock, connection, formatConnection, generate, parseBits, period, PRIMITIVE_TAPS, randomNonzeroState, type Bit } from './lfsr/lfsr'
 import { combine, GEFFE, geffeBits, type GeffeStates } from './geffe/geffe'
@@ -287,3 +288,6 @@ root.addEventListener('input', event => {
 
 freshHidden()
 renderAll()
+mountTriviumPanel(document.querySelector<HTMLElement>('.afterword')!, () => hidden?.observed.length ? { coefficients: [...hidden.coefficients], initial: [...hidden.initial], observed: [...hidden.observed] } : null)
+document.querySelector('.journey')!.insertAdjacentHTML('beforeend', '<a href="#panel-trivium">06 · Trivium</a>')
+document.querySelector('.afterword > p')!.append(' Panel 06 applies the same finite-prefix check to Trivium and shows why resisting it does not certify security.')

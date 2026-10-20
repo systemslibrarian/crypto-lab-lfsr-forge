@@ -22,7 +22,8 @@ export async function boot(page: Page): Promise<void> {
   expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('main#app')).toHaveCount(1)
-  await expect(page.locator('section.panel')).toHaveCount(5)
+  await expect(page.locator('section.panel')).toHaveCount(6)
+  await expect(page.locator('#panel-trivium > .card')).toHaveCount(3)
   await expect(page.locator('h1')).toHaveCount(1)
   await expect(page.locator('a.cl-skip-link')).toHaveAttribute('href', '#app')
   await expect(page.locator('details[open]')).toHaveCount(0)
@@ -51,4 +52,23 @@ export async function scan(page: Page, state: string): Promise<void> {
   expect(horizontalOverflow, `horizontal overflow in ${state}`).toBeLessThanOrEqual(1)
   const unreachableScrollers = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('body *')].filter(element => element.scrollWidth > element.clientWidth + 2 && getComputedStyle(element).overflowX !== 'visible' && element.tabIndex < 0 && !element.matches('table')).map(element => element.className || element.tagName))
   expect(unreachableScrollers, `unreachable horizontal scrollers in ${state}`).toEqual([])
+}
+
+export async function driveTrivium(page: Page): Promise<void> {
+  await page.locator('#tri-init').click(); await page.locator('#tri-step').click()
+  await page.locator('#tri-bm').click(); await page.locator('#tri-lfsr').click()
+  await page.locator('#tri-freeze').click(); await page.locator('#tri-reveal').click()
+  await page.locator('[data-tri="trivium-fit"] summary').click()
+  await scan(page, 'Trivium stepper and both measured forecasts')
+  await page.locator('#tri-observe').click(); await page.locator('#tri-recover').click()
+  await expect(page.locator('[data-tri="candidate-count"]')).toHaveCount(1)
+  await scan(page, 'Trivium full-warm-up candidate rejection')
+  await page.locator('input[name="tri-rounds"][value="0"]').check()
+  await page.locator('#tri-observe').click(); await page.locator('#tri-recover').click()
+  await expect(page.locator('[data-tri="candidate-count"]')).toHaveCount(1)
+  await page.locator('#tri-compare').click()
+  await page.locator('#tri-recovery summary').click()
+  await scan(page, 'Trivium zero-round recovery and equations')
+  await page.locator('#tri-key').fill('bad'); await page.locator('#tri-step').click()
+  await scan(page, 'Trivium validation error and retired results')
 }
