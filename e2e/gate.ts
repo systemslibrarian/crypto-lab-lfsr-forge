@@ -22,8 +22,9 @@ export async function boot(page: Page): Promise<void> {
   expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('main#app')).toHaveCount(1)
-  await expect(page.locator('section.panel')).toHaveCount(6)
+  await expect(page.locator('section.panel')).toHaveCount(7)
   await expect(page.locator('#panel-trivium > .card')).toHaveCount(3)
+  await expect(page.locator('#panel-boolean > .card')).toHaveCount(3)
   await expect(page.locator('h1')).toHaveCount(1)
   await expect(page.locator('a.cl-skip-link')).toHaveAttribute('href', '#app')
   await expect(page.locator('details[open]')).toHaveCount(0)
@@ -71,4 +72,20 @@ export async function driveTrivium(page: Page): Promise<void> {
   await scan(page, 'Trivium zero-round recovery and equations')
   await page.locator('#tri-key').fill('bad'); await page.locator('#tri-step').click()
   await scan(page, 'Trivium validation error and retired results')
+}
+
+export async function driveBoolean(page: Page): Promise<void> {
+  await page.locator('#bool-preset').selectOption('bent')
+  await page.locator('#bool-subset').selectOption('3')
+  await page.locator('#bool-table-card details summary').click()
+  await scan(page, 'Boolean truth table, Walsh spectrum and restrictions')
+  await page.locator('#bool-single').click()
+  await expect(page.locator('[data-verdict="ONE LEADING STATE"]')).toBeVisible()
+  await page.getByRole('button', { name: 'Compare original R4 state' }).click()
+  await scan(page, 'Boolean single-register correlation scan')
+  await page.locator('#bool-pair').click()
+  await expect(page.locator('[data-verdict="ONE LEADING PAIR"]')).toBeVisible()
+  await page.getByRole('button', { name: 'Compare original R1/R2 states' }).click()
+  await page.locator('#bool-attacks-card details summary').click()
+  await scan(page, 'Boolean pair scan and explicit limitations')
 }

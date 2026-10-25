@@ -92,7 +92,7 @@ test('the negative-claim fixture passes construction checks while exposing recov
 test('a cancelled scan cannot publish a stale verdict into a new session', async ({ page }) => {
   await boot(page)
   await page.getByRole('button', { name: 'Reproducible claim fixture' }).click()
-  await page.getByRole('button', { name: 'Cancel scan' }).click()
+  await page.locator('#panel-attack').getByRole('button', { name: 'Cancel scan' }).click()
   await page.getByRole('button', { name: 'New hidden Geffe session' }).click()
   await expect(page.locator('#attack-view')).toContainText('Attack capture: 300')
   await expect(page.locator('[data-verdict="ONE TRIPLE WITHIN SEARCH BUDGET"]')).toHaveCount(0)
@@ -284,4 +284,134 @@ test('Trivium ambiguous worker results stop without selecting a candidate', asyn
   await expect(page.locator('[data-verdict="AMBIGUOUS — STOP"]')).toBeVisible()
   await expect(page.locator('[data-tri="recovered-key"]')).toHaveCount(0)
   await expect(page.locator('#tri-compare')).toBeDisabled()
+})
+
+function booleanReference(truth: number[]) {
+  const popcount = (value: number) => value.toString(2).replaceAll('0', '').length
+  const weight = truth.reduce((sum, bit) => sum + bit, 0)
+  const anf = [...truth]
+  for (let variable = 0; variable < 4; variable++) for (let mask = 0; mask < 16; mask++) if (mask & (1 << variable)) anf[mask] ^= anf[mask ^ (1 << variable)]
+  const degree = anf.reduce((maximum, coefficient, mask) => coefficient ? Math.max(maximum, popcount(mask)) : maximum, 0)
+  const walsh = Array.from({ length: 16 }, (_, mask) => truth.reduce((sum, output, row) => sum + (output ^ (popcount(row & mask) & 1) ? -1 : 1), 0))
+  let ci = 0
+  for (let order = 1; order <= 4; order++) if (walsh.every((coefficient, mask) => mask === 0 || popcount(mask) > order || coefficient === 0)) ci = order; else break
+  let ai = 3
+  const monomials = Array.from({ length: 16 }, (_, mask) => mask).filter(mask => popcount(mask) <= 2)
+  for (let choice = 1; choice < 2 ** monomials.length; choice++) {
+    const chosen = monomials.filter((_, index) => (choice >> index) & 1)
+    const candidate = Array.from({ length: 16 }, (_, row) => chosen.reduce((sum, monomial) => sum ^ Number((row & monomial) === monomial), 0))
+    const candidateDegree = chosen.reduce((maximum, monomial) => Math.max(maximum, popcount(monomial)), 0)
+    for (const complement of [0, 1]) if (candidate.every((bit, row) => !(bit & (truth[row] ^ complement)))) ai = Math.min(ai, candidateDegree)
+  }
+  return { weight, balanced: weight === 8, degree, walsh, nonlinearity: 8 - Math.max(...walsh.map(Math.abs)) / 2, ci, resiliency: weight === 8 ? ci : null, ai }
+}
+
+async function renderedTruth(page: import('@playwright/test').Page): Promise<number[]> {
+  return (await page.locator('.bool-output').allTextContents()).map(Number)
+}
+
+function tinyRegister(degree: number, taps: number[], packed: number, count: number): number[] {
+  let state = Array.from({ length: degree }, (_, index) => (packed >> index) & 1)
+  return Array.from({ length: count }, () => {
+    const output = state[0]
+    const feedback = taps.reduce((sum, tap) => sum ^ state[degree - tap], 0)
+    state = [...state.slice(1), feedback]
+    return output
+  })
+}
+
+function booleanFixture(kind: 'single' | 'pair' | 'parity', count: number): number[] {
+  const inputs = [[3, [1, 3]], [4, [1, 4]], [5, [2, 5]], [7, [1, 7]]].map(([degree, taps]) => tinyRegister(degree as number, taps as number[], 1, count))
+  return Array.from({ length: count }, (_, index) => {
+    const [x1, x2, x3, x4] = inputs.map(bits => bits[index])
+    if (kind === 'single') return (x1 & x2) ^ (x1 & x3) ^ x4
+    if (kind === 'pair') return x1 ^ x2 ^ (x3 & x4)
+    return x1 ^ x2 ^ x3 ^ x4
+  })
+}
+
+test('Boolean metrics, restrictions, and annihilator are independently recomputed', async ({ page }) => {
+  await boot(page)
+  for (const key of ['parity', 'bent', 'resilient', 'correlated']) {
+    await page.locator('#bool-preset').selectOption(key)
+    const truth = await renderedTruth(page), reference = booleanReference(truth)
+    await expect(page.locator('[data-bool="weight"]')).toHaveText(`${reference.weight}/16`)
+    await expect(page.locator('[data-bool="balanced"]')).toHaveText(reference.balanced ? 'yes' : 'no')
+    await expect(page.locator('[data-bool="degree"]')).toHaveText(String(reference.degree))
+    await expect(page.locator('[data-bool="nonlinearity"]')).toHaveText(String(reference.nonlinearity))
+    await expect(page.locator('[data-bool="ci"]')).toHaveText(String(reference.ci))
+    await expect(page.locator('[data-bool="resiliency"]')).toHaveText(reference.resiliency === null ? 'not balanced' : String(reference.resiliency))
+    await expect(page.locator('[data-bool="ai"]')).toHaveText(String(reference.ai))
+    await expect(page.locator('[data-bool="ai-count"]')).toHaveText('4094')
+    await expect(page.locator('[data-bool="ai-product"]')).toHaveText('0'.repeat(16))
+    await expect(page.locator('[data-verdict="WALSH / RESTRICTION CHECKS AGREE"]')).toBeVisible()
+    for (let mask = 0; mask < 16; mask++) await expect(page.locator(`[data-walsh="${mask}"] td`).nth(1)).toHaveText(String(reference.walsh[mask]))
+  }
+  await page.locator('#bool-preset').selectOption('resilient')
+  await page.locator('#bool-subset').selectOption('3')
+  const rows = await page.locator('#bool-restrictions tbody tr').allTextContents()
+  expect(rows).toHaveLength(4)
+  expect(rows.filter(row => row.endsWith('no'))).toHaveLength(4)
+  const before = await renderedTruth(page)
+  const firstOutput = page.locator('.bool-output[data-row="0"]')
+  await firstOutput.focus()
+  await expect(firstOutput).toBeFocused()
+  await firstOutput.press('Enter')
+  await expect(page.locator('.bool-output[data-row="0"]')).toBeFocused()
+  const after = await renderedTruth(page)
+  expect(after[0]).toBe(1 ^ before[0])
+  const edited = booleanReference(after)
+  await expect(page.locator('[data-bool="degree"]')).toHaveText(String(edited.degree))
+  await expect(page.locator('[data-bool="nonlinearity"]')).toHaveText(String(edited.nonlinearity))
+})
+
+test('Boolean public-only worker executes both correlation counterexamples and parity prediction', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Original = window.Worker; (window as any).__boolSent = []
+    window.Worker = class extends Original {
+      postMessage(message: any, transfer?: any) {
+        if (message.kind === 'run' && message.attack) (window as any).__boolSent.push({ keys: Object.keys(message).sort(), attack: message.attack, observed: [...message.observed] })
+        super.postMessage(message, transfer)
+      }
+    }
+  })
+  await boot(page)
+  await page.locator('#bool-single').click()
+  await expect(page.locator('[data-verdict="ONE LEADING STATE"]')).toBeVisible()
+  let sent = await page.evaluate(() => (window as any).__boolSent)
+  expect(sent[0].keys).toEqual(['attack', 'kind', 'observed', 'runId'])
+  expect(sent[0].observed).toEqual(booleanFixture('single', 300))
+  await expect(page.locator('#bool-attack tbody tr').first()).toContainText('213/300')
+  await expect(page.locator('[data-bool="work"]')).toHaveText(String(127 * 300))
+  await page.getByRole('button', { name: 'Compare original R4 state' }).click()
+  await expect(page.locator('[data-verdict="R4 STATE CONFIRMED"]')).toBeVisible()
+
+  await page.locator('#bool-pair').click()
+  await expect(page.locator('[data-verdict="ONE LEADING PAIR"]')).toBeVisible()
+  sent = await page.evaluate(() => (window as any).__boolSent)
+  expect(sent[1].keys).toEqual(['attack', 'kind', 'observed', 'runId'])
+  expect(sent[1].observed).toEqual(booleanFixture('pair', 300))
+  await expect(page.locator('#bool-attack tbody tr').first()).toContainText('219/300')
+  await expect(page.locator('[data-bool="work"]')).toHaveText(String(7 * 15 * 300))
+  await page.getByRole('button', { name: 'Compare original R1/R2 states' }).click()
+  await expect(page.locator('[data-verdict="R1/R2 STATES CONFIRMED"]')).toBeVisible()
+
+  await page.locator('#bool-parity').click()
+  const full = booleanFixture('parity', 102), fitted = bmReference(full.slice(0, 38))
+  await expect(page.locator('[data-bool="parity-L"]')).toHaveText(String(fitted.length))
+  await expect(page.locator('[data-bool="parity-prediction"]')).toHaveText(predictReference(full.slice(0, 38), fitted.coefficients, fitted.length))
+  await page.getByRole('button', { name: 'Reveal and compare next 64 bits' }).click()
+  await expect(page.locator('[data-verdict="NEXT 64 BITS PREDICTED"]')).toBeVisible()
+})
+
+test('Boolean ambiguous scans stop and table edits retire prior verdicts', async ({ page }) => {
+  await boot(page)
+  await page.locator('#bool-tie').click()
+  await expect(page.locator('[data-verdict="AMBIGUOUS — STOP"]')).toBeVisible()
+  await expect(page.locator('#bool-compare')).toHaveCount(0)
+  await page.locator('#bool-single').click()
+  await expect(page.locator('[data-verdict="ONE LEADING STATE"]')).toBeVisible()
+  await page.locator('.bool-output[data-row="0"]').click()
+  await expect(page.locator('[data-verdict="ONE LEADING STATE"]')).toHaveCount(0)
+  await expect(page.locator('#bool-attack')).toContainText('prior attack result was retired')
 })
