@@ -64,6 +64,42 @@ const cases = [
     anchor: "export const TRIVIUM_NEGATIVE = 'A keystream that defeats Berlekamp–Massey is not thereby secure: with its 1,152 warm-up rounds removed, this Trivium still shows no short recurrence while its key is read off the first output bits.'",
     replacement: "export const TRIVIUM_NEGATIVE = ''", test: 'Trivium public-only worker',
   },
+  {
+    name: 'Boolean Walsh butterfly sign', file: 'src/boolean/analysis.ts',
+    anchor: 'spectrum[block + offset + stride] = left - right',
+    replacement: 'spectrum[block + offset + stride] = left + right',
+    test: 'Boolean metrics, restrictions, and annihilator',
+  },
+  {
+    name: 'Boolean restriction independence', file: 'src/boolean/analysis.ts',
+    anchor: 'independent: ones * (1 << fixedVariables.length) === weight',
+    replacement: 'independent: ones === weight',
+    test: 'Boolean metrics, restrictions, and annihilator',
+  },
+  {
+    name: 'Boolean annihilator search count', file: 'src/boolean/analysis.ts',
+    anchor: 'candidatesTotal: 2 * candidatesPerSide',
+    replacement: 'candidatesTotal: candidatesPerSide',
+    test: 'Boolean metrics, restrictions, and annihilator',
+  },
+  {
+    name: 'Boolean single-register agreement', file: 'src/boolean/attacks.ts',
+    anchor: 'sum + Number(bit === observed[index])',
+    replacement: 'sum + Number(bit !== observed[index])',
+    test: 'Boolean public-only worker executes both correlation',
+  },
+  {
+    name: 'Boolean pair relation', file: 'src/boolean/attacks.ts',
+    anchor: 'Number((leftSequences[left - 1][index] ^ rightSequences[right - 1][index]) === bit)',
+    replacement: 'Number(leftSequences[left - 1][index] === bit)',
+    test: 'Boolean public-only worker executes both correlation',
+  },
+  {
+    name: 'Boolean hidden state crosses worker boundary', file: 'src/boolean/panel.ts',
+    anchor: "worker.postMessage({ kind: 'run', runId, attack: kind, observed: [...attackObserved] })",
+    replacement: "worker.postMessage({ kind: 'run', runId, attack: kind, observed: [...attackObserved], hiddenState: 1 })",
+    test: 'Boolean public-only worker executes both correlation',
+  },
 ]
 
 function run(command, args, options = {}) {
