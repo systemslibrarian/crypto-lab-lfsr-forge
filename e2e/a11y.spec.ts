@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { boot, driveBoolean, driveTrivium, NARROW, scan, watchPageErrors } from './gate'
+import { boot, driveBoolean, driveCube, driveTrivium, NARROW, scan, watchPageErrors } from './gate'
 
 for (const width of [1280, NARROW.width]) {
-  test(`WCAG 2.1 A/AA across the seven panels at ${width}px`, async ({ page }) => {
+  test(`WCAG 2.1 A/AA across the eight panels at ${width}px`, async ({ page }) => {
     test.setTimeout(180000)
     const errors = watchPageErrors(page)
     await page.setViewportSize({ width, height: 900 })
@@ -28,15 +28,17 @@ for (const width of [1280, NARROW.width]) {
     await scan(page, 'Geffe state recovery')
     await driveTrivium(page)
     await driveBoolean(page)
+    await driveCube(page)
     expect(errors, errors.join('\n')).toEqual([])
   })
 }
 
-test('Trivium and Boolean extensions accessibility at 320px', async ({ page }) => {
+test('Trivium, Boolean, and cube extensions accessibility at 320px', async ({ page }) => {
   test.setTimeout(180000)
   const errors = watchPageErrors(page)
   await page.setViewportSize({ width: 320, height: 900 }); await boot(page)
   await driveTrivium(page)
   await driveBoolean(page)
+  await driveCube(page)
   expect(errors).toEqual([])
 })
