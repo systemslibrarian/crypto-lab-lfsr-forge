@@ -39,6 +39,12 @@ describe('exact four-input Boolean analysis', () => {
     }
     expect(analyzeBoolean(BOOLEAN_PRESETS.resilient.truth).walsh[3]).toBe(8)
     expect(analyzeBoolean(BOOLEAN_PRESETS.correlated.truth).walsh[8]).toBe(8)
+    for (const constant of [0, 1] as const) {
+      const result = analyzeBoolean(Array(16).fill(constant))
+      expect(result).toMatchObject({ degree: 0, correlationImmunity: 4, resiliency: null, algebraicImmunity: { degree: 0 } })
+      expect(result.algebraicImmunity.witness.expression).toBe('1')
+      expect(result.algebraicImmunity.witness.product).toEqual(Array(16).fill(0))
+    }
   })
 
   it('independently counts every fixed-subset slice and catches a failed order', () => {
