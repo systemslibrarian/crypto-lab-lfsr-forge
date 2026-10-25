@@ -531,3 +531,267 @@ test('cube online recovery freezes 110, verifies held-outs, and rejects both fai
   await expect(page.locator('#cube-heldout')).toBeDisabled()
   await expect(page.locator('#cube-compare')).toBeDisabled()
 })
+
+// Independent integer-register transcription of the historical BGW program.
+// These browser oracles intentionally import no A5/1 application fixtures.
+type A51ReferenceState = { r1: number; r2: number; r3: number }
+const A51_REFERENCE_REGISTERS = {
+  r1: { length: 19, mask: 0x07ffff, taps: [13, 16, 17, 18], clock: 8, output: 18 },
+  r2: { length: 22, mask: 0x3fffff, taps: [20, 21], clock: 10, output: 21 },
+  r3: { length: 23, mask: 0x7fffff, taps: [7, 20, 21, 22], clock: 10, output: 22 },
+} as const
+const A51_REFERENCE_ORDER = ['r1', 'r2', 'r3'] as const
+const A51_REFERENCE_UNKNOWN = { r1: [0, 5, 8, 13], r2: [0, 10, 20, 21], r3: [0, 7, 10, 22] } as const
+
+function a51ReferenceClockOne(value: number, register: keyof A51ReferenceState): number {
+  const profile = A51_REFERENCE_REGISTERS[register]
+  const feedback = profile.taps.reduce((bit, position) => bit ^ ((value >>> position) & 1), 0)
+  return ((value << 1) & profile.mask) | feedback
+}
+
+function a51ReferenceStep(state: A51ReferenceState, regular = false) {
+  const controls = A51_REFERENCE_ORDER.map(register => (state[register] >>> A51_REFERENCE_REGISTERS[register].clock) & 1)
+  const majority = controls.reduce((sum, bit) => sum + bit, 0) >= 2 ? 1 : 0
+  const advanced = controls.map(bit => regular || bit === majority)
+  const next = Object.fromEntries(A51_REFERENCE_ORDER.map((register, index) => [register, advanced[index] ? a51ReferenceClockOne(state[register], register) : state[register]])) as A51ReferenceState
+  const output = A51_REFERENCE_ORDER.reduce((bit, register) => bit ^ ((next[register] >>> A51_REFERENCE_REGISTERS[register].output) & 1), 0)
+  return { controls, majority, advanced, next, output }
+}
+
+function a51ReferenceSetup(keyHex = '1223456789abcdef', count = 0x134) {
+  const key = keyHex.match(/../g)!.map(byte => Number.parseInt(byte, 16))
+  let state: A51ReferenceState = { r1: 0, r2: 0, r3: 0 }
+  const regularClock = () => { state = Object.fromEntries(A51_REFERENCE_ORDER.map(register => [register, a51ReferenceClockOne(state[register], register)])) as A51ReferenceState }
+  const inject = (bit: number) => { state = { r1: state.r1 ^ bit, r2: state.r2 ^ bit, r3: state.r3 ^ bit } }
+  for (let index = 0; index < 64; index++) { regularClock(); inject((key[index >>> 3] >>> (index & 7)) & 1) }
+  const afterKey = { ...state }
+  for (let index = 0; index < 22; index++) { regularClock(); inject((count >>> index) & 1) }
+  const afterCount = { ...state }
+  for (let index = 0; index < 100; index++) state = a51ReferenceStep(state).next
+  return { afterKey, afterCount, keystreamStart: state }
+}
+
+function a51ReferenceGenerate(initial: A51ReferenceState, count: number, regular = false) {
+  let state = { ...initial }
+  const bits = Array.from({ length: count }, () => { const step = a51ReferenceStep(state, regular); state = step.next; return step.output })
+  return { bits, state }
+}
+
+function a51ReferenceHex(bits: number[]): string {
+  const bytes = new Uint8Array(Math.ceil(bits.length / 8))
+  bits.forEach((bit, index) => { bytes[index >>> 3] |= bit << (7 - (index & 7)) })
+  return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function a51ReferenceDisclosed(state: A51ReferenceState): Record<keyof A51ReferenceState, Array<number | null>> {
+  return Object.fromEntries(A51_REFERENCE_ORDER.map(register => {
+    const unknown = new Set<number>(A51_REFERENCE_UNKNOWN[register])
+    return [register, Array.from({ length: A51_REFERENCE_REGISTERS[register].length }, (_, position) => unknown.has(position) ? null : (state[register] >>> position) & 1)]
+  })) as Record<keyof A51ReferenceState, Array<number | null>>
+}
+
+function a51ReferenceComplete(disclosed: ReturnType<typeof a51ReferenceDisclosed>, code: number): A51ReferenceState {
+  let guess = 0
+  return Object.fromEntries(A51_REFERENCE_ORDER.map(register => {
+    let value = 0
+    disclosed[register].forEach((known, position) => { value |= (known === null ? (code >>> guess++) & 1 : known) << position })
+    return [register, value]
+  })) as A51ReferenceState
+}
+
+function a51ReferenceRecover(disclosed: ReturnType<typeof a51ReferenceDisclosed>, observed: number[], regular = false) {
+  let candidates = Array.from({ length: 4096 }, (_, code) => ({ code, start: a51ReferenceComplete(disclosed, code), state: a51ReferenceComplete(disclosed, code) }))
+  const counts = [candidates.length]
+  let comparisons = 0
+  for (const observedBit of observed) {
+    const survivors: typeof candidates = []
+    for (const candidate of candidates) {
+      const step = a51ReferenceStep(candidate.state, regular); comparisons++
+      if (step.output === observedBit) survivors.push({ ...candidate, state: step.next })
+    }
+    candidates = survivors; counts.push(candidates.length)
+  }
+  return { counts, comparisons, candidates: candidates.map(candidate => ({ ...candidate, prediction: a51ReferenceGenerate(candidate.state, 32, regular).bits })) }
+}
+
+function a51ReferenceStateHex(state: A51ReferenceState): string {
+  return `${state.r1.toString(16).padStart(5, '0')} / ${state.r2.toString(16).padStart(6, '0')} / ${state.r3.toString(16).padStart(6, '0')}`
+}
+
+test('historical A5/1 checkpoints and predict-before-clock interaction match an independent transcription', async ({ page }) => {
+  const setup = a51ReferenceSetup(), stream = a51ReferenceGenerate(setup.keystreamStart, 228).bits
+  expect(setup).toEqual({ afterKey: { r1: 0x4030d, r2: 0x1fa05c, r3: 0x3668e1 }, afterCount: { r1: 0x064a2, r2: 0x2bc0e5, r3: 0x72df8d }, keystreamStart: { r1: 0x1da4b, r2: 0x2cb2f9, r3: 0x08be5f } })
+  expect(a51ReferenceHex(stream.slice(0, 114))).toBe('534eaa582fe8151ab6e1855a728c00')
+  expect(a51ReferenceHex(stream.slice(114))).toBe('24fd35a35d5fb6526d32f906df1ac0')
+
+  await boot(page)
+  await expect(page.locator('[data-verdict="HISTORICAL BGW VECTOR PASSED"]')).toContainText('5/5')
+  await page.locator('#a51-checkpoints > summary').click()
+  await expect(page.locator('[data-a51="after-key"]')).toHaveText(a51ReferenceStateHex(setup.afterKey))
+  await expect(page.locator('[data-a51="after-count"]')).toHaveText(a51ReferenceStateHex(setup.afterCount))
+  await expect(page.locator('[data-a51="after-warmup"]')).toHaveText(a51ReferenceStateHex(setup.keystreamStart))
+  await expect(page.locator('[data-a51="a-to-b"]')).toHaveText(a51ReferenceHex(stream.slice(0, 114)))
+  await expect(page.locator('[data-a51="b-to-a"]')).toHaveText(a51ReferenceHex(stream.slice(114)))
+  await expect(page.locator('#a51-failures-card a[href*="TWILIGHTVEGETABLE/blob/02f25ae"]')).toHaveCount(1)
+  await expect(page.locator('#a51-failures-card a[href="https://doi.org/10.1007/3-540-44706-7_1"]')).toHaveCount(1)
+  await expect(page.locator('#a51-failures-card a[href*="ts_143020v110500p.pdf"]')).toHaveCount(1)
+  expect(await page.locator('#a51-state-rows tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('th,td')].map(cell => cell.textContent)))).toEqual([
+    ['R1', '19', '13, 16, 17, 18', '8', '18', '0x1da4b'],
+    ['R2', '22', '20, 21', '10', '21', '0x2cb2f9'],
+    ['R3', '23', '7, 20, 21, 22', '10', '22', '0x08be5f'],
+  ])
+
+  const first = a51ReferenceStep(setup.keystreamStart), regular = a51ReferenceStep(setup.keystreamStart, true)
+  expect(first).toMatchObject({ controls: [0, 0, 1], majority: 0, advanced: [true, true, false], output: 0, next: { r1: 0x3b497, r2: 0x1965f3, r3: 0x08be5f } })
+  await expect(page.locator('[data-a51="clock-bits"]')).toHaveText(first.controls.join(' / '))
+  await expect(page.locator('[data-a51="majority"]')).toHaveText(String(first.majority))
+  await expect(page.locator('[data-a51="advances"]')).toHaveCount(0)
+  await expect(page.locator('#a51-step')).toBeDisabled()
+  await page.locator('#a51-predict-r1').check(); await page.locator('#a51-predict-r2').check(); await page.locator('#a51-check-prediction').click()
+  await expect(page.locator('[data-verdict="MAJORITY PREDICTION MATCHED"]')).toBeVisible()
+  await expect(page.locator('#a51-step')).toBeEnabled()
+  await page.locator('#a51-predict-r3').check()
+  await expect(page.locator('[data-verdict="MAJORITY PREDICTION MATCHED"]')).toHaveCount(0)
+  await expect(page.locator('#a51-step')).toBeDisabled()
+  await page.locator('#a51-predict-r3').uncheck(); await page.locator('#a51-check-prediction').click(); await page.locator('#a51-regular').click()
+  await expect(page.locator('[data-a51="majority-next"]')).toHaveText(a51ReferenceStateHex(first.next))
+  await expect(page.locator('[data-a51="regular-next"]')).toHaveText(a51ReferenceStateHex(regular.next))
+  await expect(page.locator('[data-verdict="COUNTERFACTUAL ONLY"]')).toBeVisible()
+  await page.locator('#a51-step').click()
+  await expect(page.locator('[data-a51="advances"]')).toHaveText('R1 + R2')
+  await expect(page.locator('[data-a51="step-output"]')).toHaveText(String(first.output))
+  await expect(page.locator('[data-a51="step-state"]')).toHaveText(a51ReferenceStateHex(first.next))
+})
+
+test('bounded A5/1 worker receives only masked evidence and independently recovers then verifies one state', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Original = window.Worker; (window as any).__a51Sent = []
+    window.Worker = class extends Original {
+      postMessage(message: any, transfer?: any) {
+        if (message.kind === 'run' && message.disclosed) (window as any).__a51Sent.push(JSON.parse(JSON.stringify(message)))
+        super.postMessage(message, transfer)
+      }
+    }
+  })
+  const setup = a51ReferenceSetup(), stream = a51ReferenceGenerate(setup.keystreamStart, 64).bits
+  const observed = stream.slice(0, 32), heldout = stream.slice(32), disclosed = a51ReferenceDisclosed(setup.keystreamStart)
+  const reference = a51ReferenceRecover(disclosed, observed)
+  expect(reference.counts).toEqual([4096, 2048, 1664, 768, 512, 224, 64, 64, 64, 64, 32, 16, 16, 16, 16, 16, 11, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1])
+  expect(reference.comparisons).toBe(9719); expect(reference.candidates).toHaveLength(1)
+  expect(reference.candidates[0]).toMatchObject({ code: 1425, start: setup.keystreamStart, prediction: heldout })
+
+  await boot(page); await page.locator('#a51-run').click()
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveText('1425')
+  const sent = await page.evaluate(() => (window as any).__a51Sent)
+  expect(sent).toHaveLength(1)
+  expect(Object.keys(sent[0]).sort()).toEqual(['disclosed', 'kind', 'model', 'observed', 'runId'])
+  expect(sent[0].observed).toEqual(observed); expect(sent[0].model).toBe('majority')
+  expect(sent[0].disclosed).toEqual(disclosed)
+  expect(A51_REFERENCE_ORDER.flatMap(register => sent[0].disclosed[register]).filter(bit => bit === null)).toHaveLength(12)
+  expect(A51_REFERENCE_ORDER.flatMap(register => sent[0].disclosed[register]).filter(bit => bit !== null)).toHaveLength(52)
+  await expect(page.locator('[data-a51="completions"]')).toHaveText('4096')
+  await expect(page.locator('[data-a51="comparisons"]')).toHaveText(String(reference.comparisons))
+  await expect(page.locator('[data-a51="first-unique"]')).toHaveText('29')
+  await expect(page.locator('[data-a51="candidate-bits"]')).toHaveText('100010011010')
+  await expect(page.locator('[data-a51="candidate-state"]')).toHaveText(a51ReferenceStateHex(setup.keystreamStart))
+  expect((await page.locator('#a51-recovery .a51-counts tbody td').allTextContents()).map(Number)).toEqual(reference.counts)
+
+  await page.locator('#a51-heldout').click()
+  await expect(page.locator('[data-a51="heldout-actual"]')).toHaveText(heldout.join(''))
+  await expect(page.locator('[data-a51="heldout-prediction"]')).toHaveText(heldout.join(''))
+  await expect(page.locator('[data-verdict="HELD-OUT CONTINUATION MATCHED"]')).toBeVisible()
+  await page.locator('#a51-compare').click()
+  await expect(page.locator('[data-verdict="POST-100 STATE CONFIRMED"]')).toBeVisible()
+  await expect(page.locator('[data-claim="a51-scope"]')).toContainText('aligned 32-bit known keystream')
+  await expect(page.locator('[data-claim="a51-scope"]')).toContainText('52 exact post-warm-up state bits')
+  await expect(page.locator('[data-claim="a51-scope"]')).toContainText('not a published A5/1 attack')
+  await expect(page.locator('[data-claim="a51-scope"]')).toContainText('does not recover the 64-bit session key')
+  await expect(page.locator('[data-claim="a51-scope"]')).toContainText('does not model modern cellular encryption')
+})
+
+test('bounded A5/1 ambiguity, regular-model mismatch, and corrupted observation fail explicitly', async ({ page }) => {
+  const setup = a51ReferenceSetup(), stream = a51ReferenceGenerate(setup.keystreamStart, 64).bits
+  const observed = stream.slice(0, 32), heldout = stream.slice(32), disclosed = a51ReferenceDisclosed(setup.keystreamStart)
+  const ambiguous = a51ReferenceRecover(disclosed, observed.slice(0, 16))
+  const regular = a51ReferenceRecover(disclosed, observed, true)
+  const corrupted = [...observed]; corrupted[28] ^= 1
+  const corruptResult = a51ReferenceRecover(disclosed, corrupted)
+  expect(ambiguous.candidates).toHaveLength(11)
+  expect(regular.counts.slice(0, 3)).toEqual([4096, 2048, 0]); expect(regular.comparisons).toBe(6144)
+  expect(corruptResult.comparisons).toBe(9719); expect(corruptResult.candidates).toHaveLength(1); expect(corruptResult.candidates[0].code).toBe(1409)
+  const mismatches = corruptResult.candidates[0].prediction.flatMap((bit, index) => bit === heldout[index] ? [] : [index + 1])
+  expect(corruptResult.candidates[0].prediction.join('')).toBe('00101111101000000011001000110101')
+  expect(mismatches).toEqual([10, 13, 19, 22, 23, 24, 27, 29, 30, 31, 32])
+
+  await boot(page); await page.locator('#a51-ambiguous').click()
+  await expect(page.locator('[data-a51="ambiguous-count"]')).toHaveText(String(ambiguous.candidates.length))
+  await expect(page.locator('#a51-failure [data-verdict="AMBIGUOUS — STOP"]')).toBeVisible()
+  await page.locator('#a51-wrong-model').click()
+  await expect(page.locator('[data-a51="regular-counts"]')).toHaveText('4096 → 2048 → 0')
+  await expect(page.locator('[data-a51="regular-comparisons"]')).toHaveText(String(regular.comparisons))
+  await expect(page.locator('[data-verdict="REGULAR MODEL REJECTED"]')).toContainText('not a security comparison')
+  await page.locator('#a51-corrupt').click()
+  await expect(page.locator('[data-a51="corrupt-index"]')).toHaveText('29')
+  await expect(page.locator('[data-a51="corrupt-code"]')).toHaveText(String(corruptResult.candidates[0].code))
+  await expect(page.locator('[data-a51="corrupt-prediction"]')).toHaveText(corruptResult.candidates[0].prediction.join(''))
+  await expect(page.locator('[data-a51="corrupt-mismatches"]')).toHaveText(mismatches.join(', '))
+  await expect(page.locator('[data-verdict="HELD-OUT CONTINUATION REJECTED 1409"]')).toContainText('11 fresh continuation bits disagree')
+  await expect(page.locator('[data-verdict="POST-100 STATE CONFIRMED"]')).toHaveCount(0)
+})
+
+test('A5/1 cancellation, changed evidence, malformed replies, and pagehide retire worker results', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await page.addInitScript(() => {
+    ;(window as any).__a51Terminated = 0; (window as any).__a51Malformed = false; (window as any).__a51RunCount = 0; (window as any).__a51Delays = []; (window as any).__a51MalformedQueue = []
+    window.Worker = class {
+      onmessage: ((event: any) => void) | null = null
+      onerror: ((event: any) => void) | null = null
+      postMessage(message: any) {
+        if (message.kind !== 'run' || !message.disclosed) return
+        const runNumber = ++(window as any).__a51RunCount
+        const queuedMalformed = (window as any).__a51MalformedQueue.shift()
+        const malformed = queuedMalformed ?? (window as any).__a51Malformed
+        const regular = message.model === 'regular'
+        const counts = Array.from({ length: message.observed.length + 1 }, (_, index) => regular ? (index === 0 ? 4096 : index === 1 ? 2048 : 0) : (index === 0 ? 4096 : 1))
+        const candidate = { code: malformed ? 5000 : runNumber, start: { r1: malformed ? 0x80000 : 1, r2: 1, r3: 1 }, prediction: Array(32).fill(0) }
+        const result = { model: message.model, observations: [...message.observed], counts, bitComparisons: regular ? 6144 : 4096, completions: 4096, candidates: regular ? [] : [candidate] }
+        const queuedDelay = (window as any).__a51Delays.shift()
+        setTimeout(() => this.onmessage?.({ data: { kind: 'result', runId: message.runId, result } }), queuedDelay ?? (regular || malformed ? 10 : 70))
+      }
+      terminate() { (window as any).__a51Terminated++ }
+    } as any
+  })
+
+  await boot(page)
+  await page.locator('#a51-run').click(); await page.locator('#a51-cancel').click()
+  await page.waitForTimeout(100)
+  await expect(page.locator('#a51-recovery')).toContainText('cancelled')
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveCount(0)
+
+  await page.locator('#a51-run').click(); await page.locator('#a51-wrong-model').click()
+  await expect(page.locator('[data-verdict="REGULAR MODEL REJECTED"]')).toBeVisible()
+  await page.waitForTimeout(100)
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveCount(0)
+  await expect(page.locator('[data-verdict="REGULAR MODEL REJECTED"]')).toBeVisible()
+  await expect(page.locator('[data-a51="regular-counts"]')).toHaveText('4096 → 2048 → 0')
+  await expect(page.locator('[data-a51="regular-comparisons"]')).toHaveText('6144')
+
+  await page.evaluate(() => { (window as any).__a51Malformed = true })
+  await page.locator('#a51-run').click()
+  await expect(page.locator('#a51-recovery')).toContainText('invalid message')
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveCount(0)
+
+  await page.evaluate(() => { (window as any).__a51Malformed = false })
+  await page.evaluate(() => { (window as any).__a51MalformedQueue = [true, false]; (window as any).__a51Delays = [10, 80] })
+  await page.locator('#a51-run').click(); await page.locator('#a51-run').click()
+  const newestRun = await page.evaluate(() => (window as any).__a51RunCount)
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveText(String(newestRun))
+  await page.waitForTimeout(100)
+  await expect(page.locator('[data-a51="candidate-code"]')).toHaveText(String(newestRun))
+
+  await page.locator('#a51-run').click(); await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
+  await page.waitForTimeout(100)
+  expect(await page.evaluate(() => (window as any).__a51Terminated)).toBeGreaterThanOrEqual(7)
+  expect(pageErrors).toEqual([])
+})

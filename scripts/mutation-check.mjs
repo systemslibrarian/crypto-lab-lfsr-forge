@@ -134,6 +134,61 @@ const cases = [
     replacement: 'const predicted = [...observed]',
     test: 'cube online recovery freezes',
   },
+  {
+    name: 'A5/1 R1 feedback tap', file: 'src/a51/a51.ts',
+    anchor: 'tapMask: 0x072000', replacement: 'tapMask: 0x070000',
+    test: 'historical A5/1 checkpoints',
+  },
+  {
+    name: 'A5/1 majority advance rule', file: 'src/a51/a51.ts',
+    anchor: 'clockBits.map(bit => bit === vote)', replacement: 'clockBits.map(bit => bit !== vote)',
+    test: 'historical A5/1 checkpoints',
+  },
+  {
+    name: 'A5/1 clock-before-key-XOR order', file: 'src/a51/a51.ts',
+    anchor: 'state = clockAll(state)\n    state = xorInput(state, ((key[index >>> 3] >>> (index & 7)) & 1) as Bit)',
+    replacement: 'state = xorInput(state, ((key[index >>> 3] >>> (index & 7)) & 1) as Bit)\n    state = clockAll(state)',
+    test: 'historical A5/1 checkpoints',
+  },
+  {
+    name: 'A5/1 warm-up count', file: 'src/a51/a51.ts',
+    anchor: 'export const A51_WARMUP_CLOCKS = 100', replacement: 'export const A51_WARMUP_CLOCKS = 99',
+    test: 'historical A5/1 checkpoints',
+  },
+  {
+    name: 'A5/1 hidden state crosses worker boundary', file: 'src/a51/panel.ts',
+    anchor: "runWorker.postMessage({ kind: 'run', runId, disclosed, observed, model })",
+    replacement: "runWorker.postMessage({ kind: 'run', runId, disclosed, observed, model, hiddenState: A51_RECOVERY_FIXTURE.state })",
+    test: 'bounded A5/1 worker receives only masked evidence',
+  },
+  {
+    name: 'A5/1 held-out comparison inverted', file: 'src/a51/panel.ts',
+    anchor: 'const mismatchPositions = candidate.prediction.flatMap((bit, index) => bit === heldout[index] ? [] : [index + 1])',
+    replacement: 'const mismatchPositions = candidate.prediction.flatMap((bit, index) => bit !== heldout[index] ? [] : [index + 1])',
+    test: 'bounded A5/1 worker receives only masked evidence',
+  },
+  {
+    name: 'A5/1 corruption position', file: 'src/a51/recovery.ts',
+    anchor: 'corruptedOneBased: 29', replacement: 'corruptedOneBased: 28',
+    test: 'bounded A5/1 ambiguity',
+  },
+  {
+    name: 'A5/1 candidate filter polarity', file: 'src/a51/recovery.ts',
+    anchor: 'if (step.output === observations[index])', replacement: 'if (step.output !== observations[index])',
+    test: 'bounded A5/1 worker receives only masked evidence',
+  },
+  {
+    name: 'A5/1 bounded-scope wording missing', file: 'src/a51/panel.ts',
+    anchor: "export const A51_SCOPE_CLAIM = 'This fixture-specific lesson assumes an aligned 32-bit known keystream and extraordinary leakage of 52 exact post-warm-up state bits, then guesses the other 12 state bits. It is not a published A5/1 attack, does not recover the 64-bit session key, and does not model modern cellular encryption.'",
+    replacement: "export const A51_SCOPE_CLAIM = ''",
+    test: 'bounded A5/1 worker receives only masked evidence',
+  },
+  {
+    name: 'A5/1 stale result guard', file: 'src/a51/panel.ts',
+    anchor: "runWorker.onmessage = (event: MessageEvent<unknown>) => {\n      if (worker !== runWorker) return",
+    replacement: "runWorker.onmessage = (event: MessageEvent<unknown>) => {\n      if (false) return",
+    test: 'A5/1 cancellation, changed evidence',
+  },
 ]
 
 function run(command, args, options = {}) {
