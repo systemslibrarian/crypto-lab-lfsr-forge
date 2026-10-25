@@ -25,3 +25,7 @@
 #panel-cube table{min-width:42rem}#panel-cube details details{margin-left:.5rem;padding-left:.75rem;border-left:1px solid var(--border)}
 #panel-cube td,#panel-cube th{white-space:normal}#panel-cube .mono{word-break:normal}
 @media(max-width:400px){#panel-cube table{min-width:36rem}#panel-cube details details{margin-left:0;padding-left:.4rem}}
+
+/* Extension: reverse-engineered historical A5/1 and bounded state completion. */
+#panel-a51 .card,#panel-a51 .verdict{min-width:0;overflow-wrap:anywhere}#panel-a51 fieldset{min-width:0;border:1px solid #82948a;border-radius:6px}#panel-a51 input[type=checkbox]{width:20px;height:20px;accent-color:#f6b556;vertical-align:middle;margin-right:.35rem}.a51-choice{display:flex;flex-wrap:wrap;gap:.5rem 1rem}.a51-choice label{font-weight:500}.a51-mask{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem;margin:1rem 0}.a51-mask p{min-width:0;padding:.7rem;background:#111b18;border:1px solid var(--border);border-radius:6px}.a51-mask strong,.a51-mask span{display:block}.a51-mask span{color:var(--text-muted);font-size:.8rem}.a51-counts-wrap{max-width:28rem;max-height:16rem;overflow:auto}#panel-a51 td,#panel-a51 th{white-space:normal}
+@media(max-width:640px){.a51-mask{grid-template-columns:1fr}.a51-choice{display:grid;grid-template-columns:1fr}.a51-counts-wrap{max-width:none}}
