@@ -19,3 +19,9 @@
 .bool-table{max-width:36rem}.bool-table th,.bool-table td{text-align:center}.bool-table .bool-output{min-width:44px;width:44px;padding:.45rem}.bool-table .bool-output[aria-pressed=true]{background:#a8e3b4;border-color:#a8e3b4}.bool-table .bool-output[aria-pressed=false]{background:#26322e;color:var(--text);border-color:#82948a}
 .bool-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.6rem;margin:1rem 0}.bool-metrics>div{padding:.7rem;background:#111b18;border:1px solid var(--border);border-radius:6px}.bool-metrics span,.bool-metrics strong{display:block}.bool-metrics span{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim)}.bool-metrics strong{font:1.05rem ui-monospace,monospace;color:#e6d5ab}
 @media(max-width:400px){.bool-table th,.bool-table td{padding:.3rem}.bool-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Extension: bounded cube-sum and superpoly recovery. */
+#panel-cube .card,#panel-cube .verdict{min-width:0;overflow-wrap:anywhere}
+#panel-cube table{min-width:42rem}#panel-cube details details{margin-left:.5rem;padding-left:.75rem;border-left:1px solid var(--border)}
+#panel-cube td,#panel-cube th{white-space:normal}#panel-cube .mono{word-break:normal}
+@media(max-width:400px){#panel-cube table{min-width:36rem}#panel-cube details details{margin-left:0;padding-left:.4rem}}

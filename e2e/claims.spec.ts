@@ -415,3 +415,119 @@ test('Boolean ambiguous scans stop and table edits retire prior verdicts', async
   await expect(page.locator('[data-verdict="ONE LEADING STATE"]')).toHaveCount(0)
   await expect(page.locator('#bool-attack')).toContainText('prior attack result was retired')
 })
+
+function cubeOracleReference(key: number[], publicRow: number): number {
+  const [k1, k2, k3] = key
+  const [v1, v2, v3, v4] = Array.from({ length: 4 }, (_, index) => (publicRow >>> index) & 1)
+  return (v1 & v2 & (k1 ^ k2 ^ 1)) ^ (v1 & v3 & (k2 ^ k3)) ^ (v2 & v4 & (k1 ^ k2 ^ k3 ^ 1)) ^ (v3 & v4 & ((k1 & k2) ^ k3)) ^ (v1 & k3) ^ (v2 & k1) ^ (v4 & k2) ^ (k1 & k3)
+}
+
+function cubeReference(mask: number): number[] {
+  const positions = Array.from({ length: 4 }, (_, index) => index).filter(index => mask & (1 << index))
+  return Array.from({ length: 2 ** positions.length }, (_, assignment) => positions.reduce((row, position, index) => row | (((assignment >>> index) & 1) << position), 0))
+}
+
+function cubeKey(row: number): number[] {
+  return Array.from({ length: 3 }, (_, index) => (row >>> index) & 1)
+}
+
+function cubeAnf(values: number[]): number[] {
+  const coefficients = [...values]
+  for (let variable = 0; variable < 3; variable++) for (let mask = 0; mask < 8; mask++) if (mask & (1 << variable)) coefficients[mask] ^= coefficients[mask ^ (1 << variable)]
+  return coefficients
+}
+
+test('cube preprocessing independently exhausts every face and recovers the four superpolys', async ({ page }) => {
+  await boot(page)
+  const button = page.locator('#cube-preprocess')
+  await button.click(); await expect(button).toBeFocused()
+  await expect(page.locator('[data-cube="oracle-degree"]')).toHaveText('4')
+  await expect(page.locator('[data-cube="pre-raw"]')).toHaveText('128')
+  await expect(page.locator('[data-cube="pre-distinct"]')).toHaveText('72')
+  await expect(page.locator('[data-verdict="ALL CUBE FACES EXHAUSTED"]')).toBeVisible()
+
+  const cubes = [
+    { id: 'C12', mask: 3, expression: '1 ⊕ k₁ ⊕ k₂', coefficients: [1, 1, 1, 0, 0, 0, 0, 0] },
+    { id: 'C13', mask: 5, expression: 'k₂ ⊕ k₃', coefficients: [0, 0, 1, 0, 1, 0, 0, 0] },
+    { id: 'C24', mask: 10, expression: '1 ⊕ k₁ ⊕ k₂ ⊕ k₃', coefficients: [1, 1, 1, 0, 1, 0, 0, 0] },
+    { id: 'C34', mask: 12, expression: 'k₁k₂ ⊕ k₃', coefficients: [0, 0, 0, 1, 1, 0, 0, 0] },
+  ]
+  const oracleTerms = [
+    [3, 'v₁v₂k₁'], [3, 'v₁v₂k₂'], [3, 'v₁v₂'], [5, 'v₁v₃k₂'], [5, 'v₁v₃k₃'],
+    [10, 'v₂v₄k₁'], [10, 'v₂v₄k₂'], [10, 'v₂v₄k₃'], [10, 'v₂v₄'], [12, 'v₃v₄k₁k₂'],
+    [12, 'v₃v₄k₃'], [1, 'v₁k₃'], [2, 'v₂k₁'], [8, 'v₄k₂'], [0, 'k₁k₃'],
+  ] as const
+  const detailTables = page.locator('#cube-preprocess-view > details').first().locator('details table')
+  await expect(detailTables).toHaveCount(4)
+  for (let cubeIndex = 0; cubeIndex < cubes.length; cubeIndex++) {
+    const cube = cubes[cubeIndex], vertices = cubeReference(cube.mask)
+    const sums = Array.from({ length: 8 }, (_, keyRow) => vertices.reduce((sum, row) => sum ^ cubeOracleReference(cubeKey(keyRow), row), 0))
+    expect(cubeAnf(sums)).toEqual(cube.coefficients)
+    await expect(page.locator(`[data-cube="${cube.id}-superpoly"]`)).toHaveText(cube.expression)
+    const rendered = await detailTables.nth(cubeIndex).locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('th,td')].map(cell => cell.textContent)))
+    expect(rendered).toEqual(Array.from({ length: 8 }, (_, keyRow) => {
+      const key = cubeKey(keyRow), outputs = vertices.map(row => cubeOracleReference(key, row))
+      return [key.join(''), ...outputs.map(String), String(outputs.reduce((sum, bit) => sum ^ bit, 0))]
+    }))
+  }
+  const cancellationRows = await page.locator('[data-cube-table="cancellation"] tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('th,td')].map(cell => cell.textContent)))
+  expect(cancellationRows).toEqual(cubes.map(cube => [
+    cube.id,
+    oracleTerms.filter(([mask]) => mask === cube.mask).map(([, label]) => label).join(' ⊕ '),
+    oracleTerms.filter(([mask]) => mask !== cube.mask && (mask & ~cube.mask) === 0).map(([, label]) => label).join(' ⊕ '),
+    oracleTerms.filter(([mask]) => (mask & ~cube.mask) !== 0).map(([, label]) => label).join(' ⊕ '),
+    cube.expression,
+  ]))
+  await expect(page.locator('[data-cube-row="C34"]')).toContainText('valid cube; nonlinear, not a maxterm')
+  await expect(page.locator('[data-claim="cube-scope"]')).toContainText('executes no Trivium state or round')
+})
+
+test('cube online recovery freezes 110, verifies held-outs, and rejects both failure modes', async ({ page }) => {
+  await boot(page)
+  await page.locator('#cube-preprocess').click(); await page.locator('#cube-online').click()
+  await expect(page.locator('[data-cube="candidate-counts"]')).toHaveText('8 → 4 → 2 → 1')
+  await expect(page.locator('[data-cube="online-sums"]')).toHaveText('111')
+  await expect(page.locator('[data-cube="rank"]')).toHaveText('3')
+  await expect(page.locator('[data-cube="candidate"]')).toHaveText('110')
+  await expect(page.locator('[data-verdict="ONE PROVISIONAL TOY KEY"]')).toBeVisible()
+
+  const hidden = [1, 1, 0], masks = [3, 5, 10]
+  const onlineRows = page.locator('#cube-online-view tbody tr')
+  await expect(onlineRows).toHaveCount(3)
+  for (let index = 0; index < masks.length; index++) {
+    const vertices = cubeReference(masks[index]), outputs = vertices.map(row => cubeOracleReference(hidden, row))
+    await expect(onlineRows.nth(index).locator('td').nth(1)).toHaveText(outputs.join(''))
+    await expect(onlineRows.nth(index).locator('td').nth(2)).toHaveText(String(outputs.reduce((sum, bit) => sum ^ bit, 0)))
+  }
+
+  const frozen = await page.locator('[data-cube="candidate"]').innerText()
+  await page.locator('#cube-heldout').click()
+  expect(await page.locator('[data-cube="candidate"]').innerText()).toBe(frozen)
+  const heldoutRows = [6, 11, 13, 7], expected = heldoutRows.map(row => cubeOracleReference(hidden, row)).join('')
+  expect(expected).toBe('1011')
+  await expect(page.locator('[data-cube="heldout-observed"]')).toHaveText(expected)
+  await expect(page.locator('[data-cube="heldout-predicted"]')).toHaveText(expected)
+  await expect(page.locator('[data-cube="online-raw"]')).toHaveText('16')
+  await expect(page.locator('[data-cube="online-distinct"]')).toHaveText('12')
+  await expect(page.locator('[data-verdict="HELD-OUT OUTPUTS MATCH"]')).toBeVisible()
+  await page.locator('#cube-compare').click()
+  await expect(page.locator('[data-verdict="TOY SECRET CONFIRMED"]')).toBeVisible()
+
+  await page.locator('#cube-drop').click()
+  await expect(page.locator('[data-cube="drop-rank"]')).toHaveText('2')
+  await expect(page.locator('[data-cube="drop-candidates"]')).toHaveText('001, 110')
+  await expect(page.locator('#cube-failure-view [data-verdict="AMBIGUOUS — STOP"]')).toBeVisible()
+  await page.locator('#cube-flip').click()
+  await expect(page.locator('[data-cube="flip-actual-sums"]')).toHaveText('111')
+  await expect(page.locator('[data-cube="flip-sums"]')).toHaveText('101')
+  await expect(page.locator('[data-cube="flip-candidate"]')).toHaveText('000')
+  await expect(page.locator('[data-cube="flip-predicted"]')).toHaveText('0001')
+  await expect(page.locator('[data-verdict="HELD-OUT CHECK REJECTED 000"]')).toBeVisible()
+
+  const preprocess = page.locator('#cube-preprocess')
+  await preprocess.click(); await expect(preprocess).toBeFocused()
+  await expect(page.locator('[data-verdict="TOY SECRET CONFIRMED"]')).toHaveCount(0)
+  await expect(page.locator('[data-verdict="HELD-OUT CHECK REJECTED 000"]')).toHaveCount(0)
+  await expect(page.locator('#cube-heldout')).toBeDisabled()
+  await expect(page.locator('#cube-compare')).toBeDisabled()
+})
