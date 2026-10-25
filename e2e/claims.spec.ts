@@ -92,7 +92,7 @@ test('the negative-claim fixture passes construction checks while exposing recov
 test('a cancelled scan cannot publish a stale verdict into a new session', async ({ page }) => {
   await boot(page)
   await page.getByRole('button', { name: 'Reproducible claim fixture' }).click()
-  await page.getByRole('button', { name: 'Cancel scan' }).click()
+  await page.locator('#panel-attack').getByRole('button', { name: 'Cancel scan' }).click()
   await page.getByRole('button', { name: 'New hidden Geffe session' }).click()
   await expect(page.locator('#attack-view')).toContainText('Attack capture: 300')
   await expect(page.locator('[data-verdict="ONE TRIPLE WITHIN SEARCH BUDGET"]')).toHaveCount(0)
