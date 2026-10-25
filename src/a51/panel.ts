@@ -155,7 +155,7 @@ export function mountA51Panel(before: HTMLElement): void {
   }
 
   function countsTable(recovery: CompletionResult): string {
-    return `<div class="table-wrap" tabindex="0"><table class="a51-counts"><caption>Candidate completions after each observed bit</caption><thead><tr><th scope="col">observation used</th><th scope="col">survivors</th></tr></thead><tbody>${recovery.counts.map((count, index) => `<tr><th scope="row">${index === 0 ? 'before output' : index}</th><td>${count}</td></tr>`).join('')}</tbody></table></div>`
+    return `<div class="table-wrap a51-counts-wrap" tabindex="0"><table class="a51-counts"><caption>Candidate completions after each observed bit</caption><thead><tr><th scope="col">observation used</th><th scope="col">survivors</th></tr></thead><tbody>${recovery.counts.map((count, index) => `<tr><th scope="row">${index === 0 ? 'before output' : index}</th><td>${count}</td></tr>`).join('')}</tbody></table></div>`
   }
 
   function renderRecovery(): void {
