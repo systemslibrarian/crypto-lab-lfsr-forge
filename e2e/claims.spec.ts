@@ -743,10 +743,12 @@ test('A5/1 cancellation, changed evidence, malformed replies, and pagehide retir
   const pageErrors: string[] = []
   page.on('pageerror', error => pageErrors.push(error.message))
   await page.addInitScript(() => {
-    ;(window as any).__a51Terminated = 0; (window as any).__a51Malformed = false; (window as any).__a51RunCount = 0; (window as any).__a51Delays = []; (window as any).__a51MalformedQueue = []
+    ;(window as any).__a51Terminated = 0; (window as any).__a51Malformed = false; (window as any).__a51RunCount = 0; (window as any).__a51Delays = []; (window as any).__a51MalformedQueue = []; (window as any).__a51ManualDelivery = false; (window as any).__a51Workers = []
     window.Worker = class {
       onmessage: ((event: any) => void) | null = null
       onerror: ((event: any) => void) | null = null
+      pending: any = null
+      constructor() { (window as any).__a51Workers.push(this) }
       postMessage(message: any) {
         if (message.kind !== 'run' || !message.disclosed) return
         const runNumber = ++(window as any).__a51RunCount
@@ -756,9 +758,12 @@ test('A5/1 cancellation, changed evidence, malformed replies, and pagehide retir
         const counts = Array.from({ length: message.observed.length + 1 }, (_, index) => regular ? (index === 0 ? 4096 : index === 1 ? 2048 : 0) : (index === 0 ? 4096 : 1))
         const candidate = { code: malformed ? 5000 : runNumber, start: { r1: malformed ? 0x80000 : 1, r2: 1, r3: 1 }, prediction: Array(32).fill(0) }
         const result = { model: message.model, observations: [...message.observed], counts, bitComparisons: regular ? 6144 : 4096, completions: 4096, candidates: regular ? [] : [candidate] }
+        this.pending = { data: { kind: 'result', runId: message.runId, result } }
+        if ((window as any).__a51ManualDelivery) return
         const queuedDelay = (window as any).__a51Delays.shift()
-        setTimeout(() => this.onmessage?.({ data: { kind: 'result', runId: message.runId, result } }), queuedDelay ?? (regular || malformed ? 10 : 70))
+        setTimeout(() => this.deliver(), queuedDelay ?? (regular || malformed ? 10 : 70))
       }
+      deliver() { const pending = this.pending; this.pending = null; if (pending) this.onmessage?.(pending) }
       terminate() { (window as any).__a51Terminated++ }
     } as any
   })
@@ -783,13 +788,19 @@ test('A5/1 cancellation, changed evidence, malformed replies, and pagehide retir
   await expect(page.locator('[data-a51="candidate-code"]')).toHaveCount(0)
 
   await page.evaluate(() => { (window as any).__a51Malformed = false })
-  await page.evaluate(() => { (window as any).__a51MalformedQueue = [true, false]; (window as any).__a51Delays = [10, 80] })
+  await page.evaluate(() => { (window as any).__a51ManualDelivery = true; (window as any).__a51MalformedQueue = [true, false] })
   await page.locator('#a51-run').click(); await page.locator('#a51-run').click()
   const newestRun = await page.evaluate(() => (window as any).__a51RunCount)
+  await page.evaluate(() => {
+    const workers = (window as any).__a51Workers
+    const [staleWorker, newestWorker] = workers.slice(-2)
+    staleWorker.deliver()
+    newestWorker.deliver()
+  })
   await expect(page.locator('[data-a51="candidate-code"]')).toHaveText(String(newestRun))
-  await page.waitForTimeout(100)
   await expect(page.locator('[data-a51="candidate-code"]')).toHaveText(String(newestRun))
 
+  await page.evaluate(() => { (window as any).__a51ManualDelivery = false })
   await page.locator('#a51-run').click(); await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
   await page.waitForTimeout(100)
   expect(await page.evaluate(() => (window as any).__a51Terminated)).toBeGreaterThanOrEqual(7)
