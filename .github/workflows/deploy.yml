@@ -21,7 +21,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Browser installation can consume more than ten minutes on a cold runner,
+    # while the full mutation and accessibility gates still need time to finish.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
