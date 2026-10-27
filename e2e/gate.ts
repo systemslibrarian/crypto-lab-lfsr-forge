@@ -22,10 +22,9 @@ export async function boot(page: Page): Promise<void> {
   expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('main#app')).toHaveCount(1)
-  await expect(page.locator('section.panel')).toHaveCount(9)
+  await expect(page.locator('section.panel')).toHaveCount(8)
   await expect(page.locator('#panel-trivium > .card')).toHaveCount(3)
   await expect(page.locator('#panel-boolean > .card')).toHaveCount(3)
-  await expect(page.locator('#panel-cube > .card')).toHaveCount(3)
   await expect(page.locator('#panel-a51 > .card')).toHaveCount(3)
   await expect(page.locator('h1')).toHaveCount(1)
   await expect(page.locator('a.cl-skip-link')).toHaveAttribute('href', '#app')
@@ -92,26 +91,6 @@ export async function driveBoolean(page: Page): Promise<void> {
   await scan(page, 'Boolean pair scan and explicit limitations')
 }
 
-export async function driveCube(page: Page): Promise<void> {
-  await page.locator('#cube-preprocess').click()
-  await expect(page.locator('[data-cube="pre-raw"]')).toHaveText('128')
-  await page.getByText('Show all 128 preprocessing outputs', { exact: true }).click()
-  const cubeTables = page.locator('#cube-preprocess-view > details').first().locator('details > summary')
-  await expect(cubeTables).toHaveCount(4)
-  for (let index = 0; index < 4; index++) await cubeTables.nth(index).click()
-  await scan(page, 'all cube preprocessing outputs')
-  await page.getByText('Show monomial cancellation', { exact: true }).click()
-  await scan(page, 'cube monomial cancellation')
-  await page.locator('#cube-online').click()
-  await expect(page.locator('[data-cube="candidate"]')).toHaveText('110')
-  await page.locator('#cube-heldout').click()
-  await expect(page.locator('[data-verdict="HELD-OUT OUTPUTS MATCH"]')).toBeVisible()
-  await page.locator('#cube-compare').click()
-  await page.locator('#cube-flip').click()
-  await expect(page.locator('[data-verdict="HELD-OUT CHECK REJECTED 000"]')).toBeVisible()
-  await page.locator('#cube-limits-card > details > summary').click()
-  await scan(page, 'cube preprocessing, recovery, held-outs, and rejected corruption')
-}
 
 export async function driveA51(page: Page): Promise<void> {
   await expect(page.locator('[data-verdict="HISTORICAL BGW VECTOR PASSED"]')).toBeVisible()

@@ -109,7 +109,7 @@ tools (BM, `forecast`, frozen predictions, separate state comparison) instead of
   output. Runs in a worker; reuse panel 05's worker/cancel pattern.
 - `src/trivium/trivium.test.ts`.
 - `// [extension] point`s: (a) in `keystreamBits` for a Grain-128AEAD comparison;
-  (b) in `zero-round.ts` for a cube-attack exhibit on small round counts.
+  (b) in `zero-round.ts` for the separate public-observation model a real reduced-round cube attack would require. The later toy-oracle lesson lives in SAT Break, not this lab.
 
 ## UI
 

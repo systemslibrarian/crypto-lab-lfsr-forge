@@ -101,40 +101,6 @@ const cases = [
     test: 'Boolean public-only worker executes both correlation',
   },
   {
-    name: 'cube oracle v1v2 key term', file: 'src/cube/oracle.ts',
-    anchor: "{ publicMask: 0b0011, secretMask: 0b001, label: 'v₁v₂k₁' }",
-    replacement: "{ publicMask: 0b0011, secretMask: 0b100, label: 'v₁v₂k₁' }",
-    test: 'cube preprocessing independently exhausts',
-  },
-  {
-    name: 'cube face XOR reduction', file: 'src/cube/analysis.ts',
-    anchor: 'return { key, outputs, sum: outputs.reduce<number>((sum, bit) => sum ^ bit, 0) as Bit }',
-    replacement: 'return { key, outputs, sum: outputs.reduce<number>((sum, bit) => sum | bit, 0) as Bit }',
-    test: 'cube preprocessing independently exhausts',
-  },
-  {
-    name: 'cube superpoly Mobius transform', file: 'src/cube/analysis.ts',
-    anchor: 'coefficients[mask] = (coefficients[mask] ^ coefficients[mask ^ (1 << variable)]) as Bit',
-    replacement: 'coefficients[mask] = coefficients[mask ^ (1 << variable)]',
-    test: 'cube preprocessing independently exhausts',
-  },
-  {
-    name: 'cube nonlinear degree gate', file: 'src/cube/analysis.ts',
-    anchor: 'maxterm: degree === 1', replacement: 'maxterm: degree <= 2',
-    test: 'cube preprocessing independently exhausts',
-  },
-  {
-    name: 'cube affine constant moved to rhs', file: 'src/cube/analysis.ts',
-    anchor: 'const rhs = (observed ^ constant) as Bit', replacement: 'const rhs = observed',
-    test: 'cube online recovery freezes',
-  },
-  {
-    name: 'cube heldout candidate prediction', file: 'src/cube/analysis.ts',
-    anchor: 'const predicted = HELDOUT_ROWS.map(row => toyOracle(candidate, row))',
-    replacement: 'const predicted = [...observed]',
-    test: 'cube online recovery freezes',
-  },
-  {
     name: 'A5/1 R1 feedback tap', file: 'src/a51/a51.ts',
     anchor: 'tapMask: 0x072000', replacement: 'tapMask: 0x070000',
     test: 'historical A5/1 checkpoints',

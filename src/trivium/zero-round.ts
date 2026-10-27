@@ -46,7 +46,7 @@ function agrees(state: TriviumState, observed: Uint8Array): boolean {
 export async function recoverZeroRound(iv: Uint8Array, observed: Uint8Array, onProgress: (done: number, total: number) => void = () => {}, cancelled: () => boolean = () => false): Promise<Recovery> {
   const start = performance.now(), system = buildSystem(new Uint8Array(iv), new Uint8Array(observed)), candidates: Uint8Array[] = []
   const total = 2 ** system.free.length
-  // [extension] A small-round cube-attack exhibit requires a separate public-observation model.
+  // Cube attacks require a separate public-observation model; the toy-oracle lesson now lives in SAT Break.
   for (let i = 0; i < total; i++) {
     if (i % 256 === 0) { if (cancelled()) throw new Error('Recovery cancelled.'); onProgress(i, total); await new Promise<void>(resolve => setTimeout(resolve, 0)) }
     const key = system.candidate(i)
