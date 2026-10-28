@@ -8,10 +8,20 @@ export type OracleTerm = Readonly<{
   label: string
 }>
 
-// The introductory example in ePrint 2008/385 appears internally inconsistent:
-// its displayed polynomial contains a standalone v1v2 term, but its printed
-// v3 = 0 face sum omits the resulting constant 1. This lesson therefore uses
-// the independently checkable oracle below rather than reproducing that fixture.
+// ePrint 2008/385 (Dinur and Shamir, "Cube Attacks on Tweakable Black Box
+// Polynomials"), Section 1, displays the introductory master polynomial
+//   P(v1, v2, v3, x1, x2, x3) = v1v2v3 + v1v2x1 + v1v3x1 + v2v3x1 + v1v2x3
+//     + v1v3x2 + v2v3x2 + v1v3x3 + v1x1x3 + v3x2x3 + x1x2x3 + v1v2 + v1x3
+//     + v3x1 + x1x2 + x2x3 + x2 + v1 + v3 + 1
+// and then states that "summing the four derived polynomials with v3 = 0 we
+// get x1 + x3". Summing over v1, v2 in {0, 1} with v3 = 0 keeps exactly the
+// terms divisible by v1v2, namely v1v2x1 + v1v2x3 + v1v2, whose coefficient
+// is x1 + x3 + 1: the printed sum omits the constant 1 that the standalone
+// v1v2 term contributes. The paper's other two printed sums, x1 + x2 for
+// v1 = 0 and x1 + x2 + x3 for v2 = 0, agree with the displayed polynomial.
+// Checked against the ePrint PDF on 2026-10-27; cube.test.ts recomputes all
+// three sums. This lesson therefore uses the independently checkable oracle
+// below rather than reproducing that fixture.
 export const ORACLE_TERMS: readonly OracleTerm[] = [
   { publicMask: 0b0011, secretMask: 0b001, label: 'v₁v₂k₁' },
   { publicMask: 0b0011, secretMask: 0b010, label: 'v₁v₂k₂' },

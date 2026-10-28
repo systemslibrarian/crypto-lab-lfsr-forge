@@ -131,3 +131,40 @@ describe('bounded cube-sum oracle', () => {
     expect(() => runOnline(() => 2 as 0 | 1, runPreprocessing())).toThrow(/binary bit/)
   })
 })
+
+describe('the ePrint 2008/385 introductory example, recomputed', () => {
+  // The paper's displayed master polynomial, Section 1, transcribed term by term.
+  const paperP = (v1: number, v2: number, v3: number, x1: number, x2: number, x3: number): number =>
+    (v1 & v2 & v3) ^ (v1 & v2 & x1) ^ (v1 & v3 & x1) ^ (v2 & v3 & x1) ^ (v1 & v2 & x3) ^ (v1 & v3 & x2) ^
+    (v2 & v3 & x2) ^ (v1 & v3 & x3) ^ (v1 & x1 & x3) ^ (v3 & x2 & x3) ^ (x1 & x2 & x3) ^ (v1 & v2) ^
+    (v1 & x3) ^ (v3 & x1) ^ (x1 & x2) ^ (x2 & x3) ^ x2 ^ v1 ^ v3 ^ 1
+
+  const faceSum = (fixed: 1 | 2 | 3, x1: number, x2: number, x3: number): number => {
+    let sum = 0
+    for (let a = 0; a < 2; a++) {
+      for (let b = 0; b < 2; b++) {
+        const v = fixed === 1 ? [0, a, b] : fixed === 2 ? [a, 0, b] : [a, b, 0]
+        sum ^= paperP(v[0]!, v[1]!, v[2]!, x1, x2, x3)
+      }
+    }
+    return sum
+  }
+
+  it('reproduces the printed v1 = 0 and v2 = 0 sums and shows the printed v3 = 0 sum omits the constant 1', () => {
+    for (let key = 0; key < 8; key++) {
+      const x1 = key & 1
+      const x2 = (key >> 1) & 1
+      const x3 = (key >> 2) & 1
+      expect(faceSum(1, x1, x2, x3)).toBe(x1 ^ x2) // paper: x1 + x2
+      expect(faceSum(2, x1, x2, x3)).toBe(x1 ^ x2 ^ x3) // paper: x1 + x2 + x3
+      expect(faceSum(3, x1, x2, x3)).toBe(x1 ^ x3 ^ 1) // paper prints x1 + x3
+    }
+    // The discrepancy is exactly the standalone v1v2 term: without it the printed sum is right.
+    const withoutStandalone = (x1: number, x3: number): number => x1 ^ x3
+    for (let key = 0; key < 8; key++) {
+      const x1 = key & 1
+      const x3 = (key >> 2) & 1
+      expect(faceSum(3, x1, (key >> 1) & 1, x3)).toBe(withoutStandalone(x1, x3) ^ 1)
+    }
+  })
+})
