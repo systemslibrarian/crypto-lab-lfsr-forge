@@ -76,7 +76,7 @@ export function mountBooleanPanel(before: HTMLElement): void {
   function renderTruth(): void {
     const selected = presetKey()
     node<HTMLSelectElement>('bool-preset').value = selected ?? 'custom'
-    node('bool-truth').innerHTML = `<div class="table-wrap" tabindex="0"><table class="bool-table"><caption>Editable truth table in row-index order</caption><thead><tr><th scope="col">row</th><th scope="col">x1</th><th scope="col">x2</th><th scope="col">x3</th><th scope="col">x4</th><th scope="col">f</th></tr></thead><tbody>${truth.map((output, row) => `<tr><th scope="row">${row}</th>${inputBits(row).map(bit => `<td>${bit}</td>`).join('')}<td><button type="button" class="bool-output" data-row="${row}" aria-label="Toggle output for row ${row}" aria-pressed="${output === 1}">${output}</button></td></tr>`).join('')}</tbody></table></div>`
+    node('bool-truth').innerHTML = `<div class="table-wrap" tabindex="0"><table class="bool-table"><caption>Editable truth table in row-index order</caption><thead><tr><th scope="col">row</th><th scope="col">x1</th><th scope="col">x2</th><th scope="col">x3</th><th scope="col">x4</th><th scope="col">f</th></tr></thead><tbody>${truth.map((output, row) => `<tr><th scope="row">${row}</th>${inputBits(row).map(bit => `<td>${bit}</td>`).join('')}<td><button type="button" class="bool-output" data-row="${row}" aria-label="${output}: toggle the output for row ${row}" aria-pressed="${output === 1}">${output}</button></td></tr>`).join('')}</tbody></table></div>`
   }
 
   function renderAnalysis(): void {
