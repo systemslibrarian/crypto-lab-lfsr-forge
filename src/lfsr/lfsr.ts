@@ -25,7 +25,11 @@ export function formatConnection(coefficients: Connection, symbol = 'D'): string
 
 export function characteristic(coefficients: Connection): string {
   const degree = coefficients.length - 1
-  return formatConnection([...coefficients].reverse(), 'X').replace(/^1(?= \+)/, '1') + ` (reciprocal of degree ${degree})`
+  // The reciprocal is printed constant-term first, so it already begins "1 + ".
+  // A `.replace(/^1(?= \+)/, '1')` sat here, substituting the match for itself:
+  // CodeQL js/identity-replacement. Deleted rather than "corrected", because
+  // the output it produced is the output the suite pins and the page shows.
+  return formatConnection([...coefficients].reverse(), 'X') + ` (reciprocal of degree ${degree})`
 }
 
 export function assertRegister(coefficients: Connection, state: State): void {
