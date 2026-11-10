@@ -74,6 +74,7 @@ jobs:
       - id: meta
         uses: dependabot/fetch-metadata@v3
       - name: Merge any bump whose gate went green
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
         run: |
           merged=""
           for attempt in 1 2 3; do
