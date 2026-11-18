@@ -439,6 +439,11 @@ function cubeAnf(values: number[]): number[] {
 
 test('cube preprocessing independently exhausts every face and recovers the four superpolys', async ({ page }) => {
   await boot(page)
+  const note = page.locator('#panel-cube p').filter({ hasText: 'first cryptanalytic result on 852-round Trivium' })
+  await expect(note).toContainText('851 rounds at EUROCRYPT 2024')
+  await expect(note).toContainText('weak-key superpoly recovery')
+  await expect(note).toContainText('does not break full Trivium (1,152 initialization rounds)')
+  await expect(note.getByRole('link')).toBeVisible()
   const button = page.locator('#cube-preprocess')
   await button.click(); await expect(button).toBeFocused()
   await expect(page.locator('[data-cube="oracle-degree"]')).toHaveText('4')
